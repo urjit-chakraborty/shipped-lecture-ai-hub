@@ -1,4 +1,3 @@
-
 import { Play, Calendar, Clock, Users, MessageCircle, Rocket, Zap, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,24 +10,25 @@ import { AIChat } from "@/components/AIChat";
 import { AISummaryDialog } from "@/components/AISummaryDialog";
 import { useState } from "react";
 import { getYouTubeThumbnailUrl } from "@/utils/youtube";
-
 const Index = () => {
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [aiChatPreselectedEvents, setAiChatPreselectedEvents] = useState<string[]>([]);
-
-  const { data: events = [], isLoading } = useQuery({
+  const {
+    data: events = [],
+    isLoading
+  } = useQuery({
     queryKey: ['events'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .order('event_date', { ascending: true });
-      
+      const {
+        data,
+        error
+      } = await supabase.from('events').select('*').order('event_date', {
+        ascending: true
+      });
       if (error) throw error;
       return data || [];
     }
   });
-
   const getCategoryColor = (category: string) => {
     switch (category) {
       case "Lecture":
@@ -43,7 +43,6 @@ const Index = () => {
         return "bg-gray-100 text-gray-800 hover:bg-gray-200";
     }
   };
-
   const formatLocalTime = (utcDate: string) => {
     const date = new Date(utcDate);
     return {
@@ -52,34 +51,38 @@ const Index = () => {
       year: format(date, 'yyyy')
     };
   };
-
   const getEventStatus = (event: any) => {
     const eventDate = new Date(event.event_date);
     const hasVideo = !!event.youtube_url;
-    
     if (isPast(eventDate) && hasVideo) {
-      return { status: 'available', text: 'Watch Video' };
+      return {
+        status: 'available',
+        text: 'Watch Video'
+      };
     } else if (isPast(eventDate) && !hasVideo) {
-      return { status: 'processing', text: 'Video Coming Soon' };
+      return {
+        status: 'processing',
+        text: 'Video Coming Soon'
+      };
     } else {
-      return { status: 'upcoming', text: 'Upcoming Event' };
+      return {
+        status: 'upcoming',
+        text: 'Upcoming Event'
+      };
     }
   };
-
   const handleEventClick = (event: any) => {
     const eventStatus = getEventStatus(event);
     if (eventStatus.status === 'available') {
       window.open(event.youtube_url, '_blank');
     }
   };
-
   const handlePlayButtonClick = (event: any, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click event
     if (event.youtube_url) {
       window.open(event.youtube_url, '_blank');
     }
   };
-
   const handleAIChatClick = (event?: any) => {
     if (event) {
       // Pre-select specific event
@@ -90,9 +93,7 @@ const Index = () => {
     }
     setIsAIChatOpen(true);
   };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+  return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-6">
@@ -117,11 +118,7 @@ const Index = () => {
               </a>
               <Dialog open={isAIChatOpen} onOpenChange={setIsAIChatOpen}>
                 <DialogTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    className="border-blue-200 text-blue-600 hover:bg-blue-50"
-                    onClick={() => handleAIChatClick()}
-                  >
+                  <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50" onClick={() => handleAIChatClick()}>
                     <MessageCircle className="w-4 h-4 mr-2" />
                     AI Assistant
                   </Button>
@@ -184,71 +181,48 @@ const Index = () => {
       {/* Events Grid */}
       <section className="container mx-auto px-4 pb-12">
         <div className="flex items-center justify-between mb-8">
-          <h3 className="text-2xl font-bold text-slate-900">Featured Builds</h3>
+          <h3 className="text-2xl font-bold text-slate-900">Featured Videos</h3>
           <Button variant="ghost" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
             <a href="/calendar">View Calendar</a>
           </Button>
         </div>
 
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
+        {isLoading ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => <Card key={i} className="animate-pulse">
                 <div className="w-full h-48 bg-gray-200" />
                 <CardHeader>
                   <div className="h-4 bg-gray-200 rounded w-3/4" />
                   <div className="h-3 bg-gray-200 rounded w-full" />
                 </CardHeader>
-              </Card>
-            ))}
-          </div>
-        ) : events.length === 0 ? (
-          <div className="text-center py-12">
+              </Card>)}
+          </div> : events.length === 0 ? <div className="text-center py-12">
             <p className="text-gray-500 text-lg">No events scheduled yet. Check back soon!</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {events.map((event) => {
-              const eventStatus = getEventStatus(event);
-              const localTime = formatLocalTime(event.event_date);
-              const thumbnailUrl = event.youtube_url ? getYouTubeThumbnailUrl(event.youtube_url) : null;
-              
-              return (
-                <Card key={event.id} className="group hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm border-slate-200 hover:border-blue-200 overflow-hidden">
+          </div> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {events.map(event => {
+          const eventStatus = getEventStatus(event);
+          const localTime = formatLocalTime(event.event_date);
+          const thumbnailUrl = event.youtube_url ? getYouTubeThumbnailUrl(event.youtube_url) : null;
+          return <Card key={event.id} className="group hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm border-slate-200 hover:border-blue-200 overflow-hidden">
                   <div className="relative">
-                    {thumbnailUrl ? (
-                      <div className="w-full h-48 relative overflow-hidden bg-black flex items-center justify-center">
-                        <img 
-                          src={thumbnailUrl} 
-                          alt={event.title}
-                          className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
-                          onError={(e) => {
-                            // Fallback to gradient background if thumbnail fails to load
-                            (e.target as HTMLImageElement).style.display = 'none';
-                            const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
-                            if (fallback) fallback.style.display = 'flex';
-                          }}
-                        />
+                    {thumbnailUrl ? <div className="w-full h-48 relative overflow-hidden bg-black flex items-center justify-center">
+                        <img src={thumbnailUrl} alt={event.title} className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300" onError={e => {
+                  // Fallback to gradient background if thumbnail fails to load
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = 'flex';
+                }} />
                         <div className="w-full h-48 bg-gradient-to-br from-blue-100 to-indigo-100 absolute inset-0 items-center justify-center hidden">
                           <Play className="w-16 h-16 text-blue-600/50" />
                         </div>
                         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300" />
-                        {event.youtube_url && (
-                          <div 
-                            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer"
-                            onClick={(e) => handlePlayButtonClick(event, e)}
-                          >
+                        {event.youtube_url && <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer" onClick={e => handlePlayButtonClick(event, e)}>
                             <div className="bg-white/90 rounded-full p-3 hover:bg-white transition-colors duration-200">
                               <Play className="w-8 h-8 text-blue-600" />
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="w-full h-48 bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+                          </div>}
+                      </div> : <div className="w-full h-48 bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
                         <Code className="w-16 h-16 text-blue-600/50" />
-                      </div>
-                    )}
+                      </div>}
                     <div className="absolute top-3 right-3">
                       <Badge className={getCategoryColor(event.event_type)}>
                         {event.event_type}
@@ -279,51 +253,29 @@ const Index = () => {
                     </div>
                     
                     <div className="space-y-2">
-                      {eventStatus.status === 'available' ? (
-                        <Button 
-                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
-                          onClick={() => handleEventClick(event)}
-                        >
+                      {eventStatus.status === 'available' ? <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white" onClick={() => handleEventClick(event)}>
                           <Play className="w-4 h-4 mr-2" />
                           {eventStatus.text}
-                        </Button>
-                      ) : eventStatus.status === 'processing' ? (
-                        <Button variant="outline" className="w-full" disabled>
+                        </Button> : eventStatus.status === 'processing' ? <Button variant="outline" className="w-full" disabled>
                           <Clock className="w-4 h-4 mr-2" />
                           {eventStatus.text}
-                        </Button>
-                      ) : (
-                        <Button variant="outline" className="w-full">
+                        </Button> : <Button variant="outline" className="w-full">
                           <Calendar className="w-4 h-4 mr-2" />
                           {eventStatus.text}
-                        </Button>
-                      )}
+                        </Button>}
                       
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                        onClick={() => handleAIChatClick(event)}
-                      >
+                      <Button variant="ghost" size="sm" className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleAIChatClick(event)}>
                         <MessageCircle className="w-4 h-4 mr-2" />
                         Ask AI about this video
                       </Button>
 
                       {/* AI Summary Button - only show if AI summary exists */}
-                      {event.ai_summary && (
-                        <AISummaryDialog 
-                          eventTitle={event.title}
-                          aiSummary={event.ai_summary}
-                          eventType={event.event_type}
-                        />
-                      )}
+                      {event.ai_summary && <AISummaryDialog eventTitle={event.title} aiSummary={event.ai_summary} eventType={event.event_type} />}
                     </div>
                   </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                </Card>;
+        })}
+          </div>}
       </section>
 
       {/* Call to Action */}
@@ -381,8 +333,6 @@ const Index = () => {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
