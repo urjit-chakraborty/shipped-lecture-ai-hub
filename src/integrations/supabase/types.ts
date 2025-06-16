@@ -17,6 +17,7 @@ export type Database = {
           event_type: string
           id: string
           title: string
+          transcription: string | null
           updated_at: string
           youtube_url: string | null
         }
@@ -27,6 +28,7 @@ export type Database = {
           event_type: string
           id?: string
           title: string
+          transcription?: string | null
           updated_at?: string
           youtube_url?: string | null
         }
@@ -37,6 +39,7 @@ export type Database = {
           event_type?: string
           id?: string
           title?: string
+          transcription?: string | null
           updated_at?: string
           youtube_url?: string | null
         }
