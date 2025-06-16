@@ -9,6 +9,7 @@ const corsHeaders = {
 };
 
 const DAILY_MESSAGE_LIMIT = 10; // Messages per day for users without API keys
+const MAX_TRANSCRIPT_LENGTH = 12000; // Maximum characters to send to AI
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -84,6 +85,14 @@ serve(async (req) => {
     if (eventIds && eventIds.length > 0) {
       console.log('Fetching events for IDs:', eventIds);
       
+      // First, let's check if these IDs exist at all
+      const { data: allEvents, error: allEventsError } = await supabase
+        .from('events')
+        .select('id, title')
+        .limit(10);
+
+      console.log('Sample events in database:', allEvents?.map(e => ({ id: e.id, title: e.title })));
+
       const { data: events, error: eventsError } = await supabase
         .from('events')
         .select('id, title, description, transcription, ai_summary')
@@ -92,7 +101,8 @@ serve(async (req) => {
       console.log('Events query result:', { 
         eventsCount: events?.length || 0, 
         error: eventsError,
-        eventTitles: events?.map(e => e.title)
+        eventTitles: events?.map(e => e.title),
+        actualEventIds: events?.map(e => e.id)
       });
 
       if (eventsError) {
@@ -102,8 +112,12 @@ serve(async (req) => {
 
       if (events && events.length > 0) {
         // Filter out events without transcription
-        const eventsWithTranscripts = events.filter(event => event.transcription);
+        const eventsWithTranscripts = events.filter(event => event.transcription && event.transcription.trim() !== '');
         console.log('Events with transcripts:', eventsWithTranscripts.length);
+        console.log('Transcript lengths:', eventsWithTranscripts.map(e => ({ 
+          title: e.title, 
+          transcriptLength: e.transcription?.length || 0 
+        })));
 
         if (eventsWithTranscripts.length === 0) {
           console.log('No events have transcripts available');
@@ -118,11 +132,24 @@ serve(async (req) => {
               context += `AI Summary: ${event.ai_summary}\n\n`;
             }
             if (event.transcription) {
-              // Truncate very long transcripts to avoid token limits
-              const transcript = event.transcription.length > 8000 
-                ? event.transcription.substring(0, 8000) + '... [transcript truncated for length]'
-                : event.transcription;
-              context += `Full Transcript:\n${transcript}\n`;
+              // Chunk large transcripts
+              const transcript = event.transcription;
+              if (transcript.length > MAX_TRANSCRIPT_LENGTH) {
+                console.log(`Chunking transcript for "${event.title}" (${transcript.length} chars -> ${MAX_TRANSCRIPT_LENGTH} chars)`);
+                
+                // Take the first part and last part to give context of beginning and end
+                const chunkSize = Math.floor(MAX_TRANSCRIPT_LENGTH / 2) - 100; // Leave room for separator
+                const firstChunk = transcript.substring(0, chunkSize);
+                const lastChunk = transcript.substring(transcript.length - chunkSize);
+                
+                context += `Full Transcript (chunked due to length):\n`;
+                context += `[BEGINNING OF VIDEO]\n${firstChunk}\n\n`;
+                context += `[... MIDDLE SECTION TRUNCATED FOR LENGTH ...]\n\n`;
+                context += `[END OF VIDEO]\n${lastChunk}\n`;
+                context += `\n[Note: This is a ${Math.round(transcript.length / 1000)}k character transcript, showing beginning and end sections]`;
+              } else {
+                context += `Full Transcript:\n${transcript}\n`;
+              }
             }
             return context;
           }).join('\n==========================================\n\n');
@@ -130,8 +157,8 @@ serve(async (req) => {
           console.log('Built context length:', eventContext.length);
         }
       } else {
-        console.log('No events found for provided IDs');
-        eventContext = 'Note: No videos found for the selected IDs.';
+        console.log('No events found for provided IDs. Requested IDs:', eventIds);
+        eventContext = `Note: No videos found for the selected IDs (${eventIds.join(', ')}). Please check if the video IDs are correct.`;
       }
     }
 

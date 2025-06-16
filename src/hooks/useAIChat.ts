@@ -42,7 +42,10 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
     setIsLoading(true);
 
     try {
-      console.log('Sending message with event IDs:', selectedEventIds);
+      console.log('useAIChat - Sending message with event IDs:', selectedEventIds);
+      console.log('useAIChat - Event IDs length:', selectedEventIds.length);
+      console.log('useAIChat - Event IDs are:', selectedEventIds);
+      
       const { data, error } = await supabase.functions.invoke('ai-chat', {
         body: {
           message: userMessage.content,
