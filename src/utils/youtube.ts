@@ -8,9 +8,9 @@ export const getYouTubeVideoId = (url: string): string | null => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
-export const getYouTubeThumbnailUrl = (url: string, quality: 'default' | 'medium' | 'high' | 'standard' | 'maxres' = 'high'): string | null => {
+export const getYouTubeThumbnailUrl = (url: string): string | null => {
   const videoId = getYouTubeVideoId(url);
   if (!videoId) return null;
   
-  return `https://img.youtube.com/vi/${videoId}/${quality}default.jpg`;
+  return `https://img.youtube.com/vi/${videoId}/sddefault.jpg`;
 };
