@@ -1,11 +1,10 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MessageCircle, Send, Bot, User, Loader2, X, Plus, AlertCircle } from 'lucide-react';
+import { MessageCircle, Send, Bot, User, Loader2, X, Plus, AlertCircle, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
@@ -119,14 +118,17 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
   }, [selectedEventIds, events, hasUserApiKeys, usageCount]);
 
   useEffect(() => {
-    // Scroll to bottom when new messages are added
+    // Improved scroll to bottom functionality
     if (scrollAreaRef.current) {
-      const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollElement) {
-        scrollElement.scrollTop = scrollElement.scrollHeight;
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+      if (scrollContainer) {
+        // Use requestAnimationFrame to ensure the DOM has updated
+        requestAnimationFrame(() => {
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        });
       }
     }
-  }, [messages]);
+  }, [messages, isLoading]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -223,11 +225,19 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
 
   return (
     <Card className="h-[600px] flex flex-col">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 flex-shrink-0">
         <CardTitle className="flex items-center gap-2">
           <MessageCircle className="w-5 h-5" />
           AI Video Assistant
         </CardTitle>
+        
+        {/* Chat persistence warning */}
+        <Alert className="border-orange-200 bg-orange-50">
+          <AlertTriangle className="h-4 w-4 text-orange-600" />
+          <AlertDescription className="text-orange-800">
+            <strong>Note:</strong> Chat conversations are not saved and will be lost when you close or refresh this window.
+          </AlertDescription>
+        </Alert>
         
         {!hasUserApiKeys && (
           <Alert>
@@ -281,9 +291,9 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
         )}
       </CardHeader>
       
-      <CardContent className="flex-1 flex flex-col p-0">
+      <CardContent className="flex-1 flex flex-col p-0 min-h-0">
         <ScrollArea ref={scrollAreaRef} className="flex-1 px-6">
-          <div className="space-y-4 pb-4">
+          <div className="space-y-4 pb-4 min-h-full">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -297,7 +307,7 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
                   }`}
                 >
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                       message.role === 'user'
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 text-gray-600'
@@ -317,7 +327,7 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
                         : 'bg-gray-100 text-gray-900'
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                     <p
                       className={`text-xs mt-1 ${
                         message.role === 'user'
@@ -337,7 +347,7 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
             
             {isLoading && (
               <div className="flex gap-3 justify-start">
-                <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center flex-shrink-0">
                   <Bot className="w-4 h-4" />
                 </div>
                 <div className="bg-gray-100 text-gray-900 rounded-lg px-4 py-2">
@@ -351,7 +361,7 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
           </div>
         </ScrollArea>
         
-        <div className="p-6 pt-4 border-t">
+        <div className="p-6 pt-4 border-t flex-shrink-0">
           <div className="flex gap-2">
             <Input
               value={input}
