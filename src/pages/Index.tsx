@@ -1,4 +1,4 @@
-import { Play, Calendar, Clock, Users, MessageCircle } from "lucide-react";
+import { Play, Calendar, Clock, Users, MessageCircle, Rocket, Zap, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { format, isPast, isFuture } from "date-fns";
 import { AIChat } from "@/components/AIChat";
 import { AISummaryDialog } from "@/components/AISummaryDialog";
 import { useState } from "react";
+import { getYouTubeThumbnailUrl } from "@/utils/youtube";
 
 const Index = () => {
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
@@ -90,7 +91,7 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                <Play className="w-6 h-6 text-white" />
+                <Rocket className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
@@ -132,17 +133,21 @@ const Index = () => {
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-12">
         <div className="text-center max-w-3xl mx-auto mb-12">
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <Rocket className="w-8 h-8 text-blue-600" />
+            <Zap className="w-6 h-6 text-indigo-600" />
+          </div>
           <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 leading-tight">
-            Master Modern Web Development
+            Ship Faster with <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Lovable</span>
           </h2>
           <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-            Access comprehensive video content, interactive AI assistance, and hands-on learning materials 
-            to accelerate your development journey with Lovable.
+            Watch how top developers ship web applications at lightning speed. Learn the strategies, 
+            tools, and techniques that turn ideas into deployed products in record time.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3">
-              <Play className="w-5 h-5 mr-2" />
-              Start Learning
+              <Rocket className="w-5 h-5 mr-2" />
+              Start Shipping
             </Button>
             <Button size="lg" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50 px-8 py-3">
               <Calendar className="w-5 h-5 mr-2" />
@@ -155,15 +160,15 @@ const Index = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 text-center border border-slate-200">
             <div className="text-3xl font-bold text-blue-600 mb-2">{events.length}+</div>
-            <div className="text-slate-600">Video Events</div>
+            <div className="text-slate-600">Shipped Projects</div>
           </div>
           <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 text-center border border-slate-200">
             <div className="text-3xl font-bold text-indigo-600 mb-2">Live</div>
-            <div className="text-slate-600">Streaming</div>
+            <div className="text-slate-600">Building Sessions</div>
           </div>
           <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 text-center border border-slate-200">
             <div className="text-3xl font-bold text-purple-600 mb-2">AI</div>
-            <div className="text-slate-600">Powered Chat</div>
+            <div className="text-slate-600">Powered Assistance</div>
           </div>
         </div>
       </section>
@@ -171,7 +176,7 @@ const Index = () => {
       {/* Events Grid */}
       <section className="container mx-auto px-4 pb-12">
         <div className="flex items-center justify-between mb-8">
-          <h3 className="text-2xl font-bold text-slate-900">Featured Events</h3>
+          <h3 className="text-2xl font-bold text-slate-900">Featured Builds</h3>
           <Button variant="ghost" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
             <a href="/calendar">View Calendar</a>
           </Button>
@@ -198,20 +203,45 @@ const Index = () => {
             {events.map((event) => {
               const eventStatus = getEventStatus(event);
               const localTime = formatLocalTime(event.event_date);
+              const thumbnailUrl = event.youtube_url ? getYouTubeThumbnailUrl(event.youtube_url) : null;
               
               return (
                 <Card key={event.id} className="group hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm border-slate-200 hover:border-blue-200 overflow-hidden">
                   <div className="relative">
-                    <div className="w-full h-48 bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
-                      <Play className="w-16 h-16 text-blue-600/50" />
-                    </div>
-                    <div className="absolute inset-0 bg-black/10 group-hover:bg-black/5 transition-colors duration-300" />
+                    {thumbnailUrl ? (
+                      <div className="w-full h-48 relative overflow-hidden">
+                        <img 
+                          src={thumbnailUrl} 
+                          alt={event.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            // Fallback to gradient background if thumbnail fails to load
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        />
+                        <div className="w-full h-48 bg-gradient-to-br from-blue-100 to-indigo-100 absolute inset-0 items-center justify-center hidden">
+                          <Play className="w-16 h-16 text-blue-600/50" />
+                        </div>
+                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300" />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="bg-white/90 rounded-full p-3">
+                            <Play className="w-8 h-8 text-blue-600" />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-full h-48 bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+                        <Code className="w-16 h-16 text-blue-600/50" />
+                      </div>
+                    )}
                     <div className="absolute top-3 right-3">
                       <Badge className={getCategoryColor(event.event_type)}>
                         {event.event_type}
                       </Badge>
                     </div>
-                    <div className="absolute bottom-3 left-3 flex items-center space-x-2 text-blue-700 text-sm font-medium">
+                    <div className="absolute bottom-3 left-3 flex items-center space-x-2 text-white text-sm font-medium bg-black/50 rounded-full px-3 py-1">
                       <Calendar className="w-4 h-4" />
                       <span>{localTime.date}</span>
                     </div>
@@ -222,7 +252,7 @@ const Index = () => {
                       {event.title}
                     </CardTitle>
                     <CardDescription className="line-clamp-2">
-                      {event.description || "Join us for an exciting event covering the latest in web development."}
+                      {event.description || "Join us for an exciting build session covering the latest in web development."}
                     </CardDescription>
                   </CardHeader>
                   
@@ -286,12 +316,17 @@ const Index = () => {
       {/* Call to Action */}
       <section className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-16">
         <div className="container mx-auto px-4 text-center">
-          <h3 className="text-3xl font-bold mb-4">Ready to Start Your Journey?</h3>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Rocket className="w-8 h-8" />
+          </div>
+          <h3 className="text-3xl font-bold mb-4">Ready to Ship Your Next Project?</h3>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join thousands of developers who are already learning and building amazing applications with our comprehensive video series.
+            Join thousands of developers who are shipping faster than ever with Lovable. 
+            Learn the tools, techniques, and mindset that accelerate development from idea to deployment.
           </p>
           <Button size="lg" variant="secondary" className="bg-white text-blue-600 hover:bg-blue-50 px-8 py-3">
-            Get Started Today
+            <Zap className="w-5 h-5 mr-2" />
+            Start Building Today
           </Button>
         </div>
       </section>
@@ -303,12 +338,12 @@ const Index = () => {
             <div>
               <div className="flex items-center space-x-3 mb-4">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                  <Play className="w-5 h-5 text-white" />
+                  <Rocket className="w-5 h-5 text-white" />
                 </div>
                 <span className="text-white font-semibold">Lovable Shipped</span>
               </div>
               <p className="text-sm">
-                Your go-to resource for modern web development education and AI-powered learning assistance.
+                Your go-to resource for shipping web applications faster with modern development techniques and AI-powered assistance.
               </p>
             </div>
             <div>
