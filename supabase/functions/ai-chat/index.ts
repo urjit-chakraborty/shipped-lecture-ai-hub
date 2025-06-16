@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { message, eventId } = await req.json();
+    const { message, eventIds } = await req.json();
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -23,20 +23,22 @@ serve(async (req) => {
 
     let contextInfo = '';
     
-    // If eventId is provided, get the specific event's transcript
-    if (eventId) {
-      const { data: event } = await supabase
+    // If specific eventIds are provided, get those events' transcripts
+    if (eventIds && eventIds.length > 0) {
+      const { data: events } = await supabase
         .from('events')
         .select('title, description, transcription, event_type')
-        .eq('id', eventId)
-        .single();
+        .in('id', eventIds);
       
-      if (event) {
+      if (events && events.length > 0) {
         contextInfo = `
+Selected Video Content:
+${events.map(event => `
 Event: ${event.title}
 Type: ${event.event_type}
 Description: ${event.description || 'No description available'}
 Transcript: ${event.transcription || 'No transcript available yet'}
+`).join('\n---\n')}
         `;
       }
     } else {
@@ -52,6 +54,8 @@ Transcript: ${event.transcription || 'No transcript available yet'}
         contextInfo = `
 Recent Video Content Available:
 ${events.map(event => `- ${event.title} (${event.event_type})`).join('\n')}
+
+Note: For specific video assistance, please select videos from the dropdown above for more detailed context.
         `;
       }
     }
@@ -62,10 +66,12 @@ ${contextInfo ? `Current Context:\n${contextInfo}` : ''}
 
 Guidelines:
 - Be helpful and knowledgeable about web development, React, TypeScript, and modern development practices
-- If referencing video content, be specific about which video or topic you're discussing
+- If you have specific video content context, reference it directly and be specific about which video or topic you're discussing
 - If you don't have transcript information for a specific video, acknowledge this and offer general guidance
+- If no specific videos are selected, you can still provide general web development help and mention that users can select specific videos for more targeted assistance
 - Encourage users to watch the full videos for complete understanding
-- Keep responses concise but informative`;
+- Keep responses concise but informative
+- When users ask about videos without providing context, suggest they select relevant videos from the dropdown for better assistance`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

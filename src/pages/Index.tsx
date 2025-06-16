@@ -10,8 +10,8 @@ import { AIChat } from "@/components/AIChat";
 import { useState } from "react";
 
 const Index = () => {
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
+  const [aiChatPreselectedEvents, setAiChatPreselectedEvents] = useState<string[]>([]);
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['events'],
@@ -70,8 +70,14 @@ const Index = () => {
     }
   };
 
-  const handleAIChatClick = (event: any) => {
-    setSelectedEvent(event);
+  const handleAIChatClick = (event?: any) => {
+    if (event) {
+      // Pre-select specific event
+      setAiChatPreselectedEvents([event.id]);
+    } else {
+      // Open general AI chat
+      setAiChatPreselectedEvents([]);
+    }
     setIsAIChatOpen(true);
   };
 
@@ -101,7 +107,11 @@ const Index = () => {
               </a>
               <Dialog open={isAIChatOpen} onOpenChange={setIsAIChatOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50">
+                  <Button 
+                    variant="outline" 
+                    className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                    onClick={() => handleAIChatClick()}
+                  >
                     <MessageCircle className="w-4 h-4 mr-2" />
                     AI Assistant
                   </Button>
@@ -110,10 +120,7 @@ const Index = () => {
                   <DialogHeader>
                     <DialogTitle>AI Video Assistant</DialogTitle>
                   </DialogHeader>
-                  <AIChat 
-                    eventId={selectedEvent?.id} 
-                    eventTitle={selectedEvent?.title}
-                  />
+                  <AIChat preselectedEventIds={aiChatPreselectedEvents} />
                 </DialogContent>
               </Dialog>
             </nav>

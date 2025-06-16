@@ -4,9 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageCircle, Send, Bot, User, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MessageCircle, Send, Bot, User, Loader2, X, Plus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 
 interface Message {
   id: string;
@@ -16,28 +19,58 @@ interface Message {
 }
 
 interface AIChatProps {
-  eventId?: string;
-  eventTitle?: string;
+  preselectedEventIds?: string[];
 }
 
-export const AIChat = ({ eventId, eventTitle }: AIChatProps) => {
+export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedEventIds, setSelectedEventIds] = useState<string[]>(preselectedEventIds);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Fetch all events for selection
+  const { data: events = [] } = useQuery({
+    queryKey: ['events'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('event_date', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  useEffect(() => {
+    // Set preselected events
+    if (preselectedEventIds.length > 0) {
+      setSelectedEventIds(preselectedEventIds);
+    }
+  }, [preselectedEventIds]);
 
   useEffect(() => {
     // Add welcome message
+    const getWelcomeMessage = () => {
+      if (selectedEventIds.length === 1) {
+        const selectedEvent = events.find(e => e.id === selectedEventIds[0]);
+        return `Hello! I'm here to help you with questions about "${selectedEvent?.title}" and other web development topics. What would you like to know?`;
+      } else if (selectedEventIds.length > 1) {
+        return `Hello! I'm here to help you with questions about the ${selectedEventIds.length} selected videos and other web development topics. What would you like to know?`;
+      } else {
+        return `Hello! I'm your AI assistant for the Lovable Shipped Video Hub. I can help answer questions about our video content, web development, and guide you through using Lovable. Select videos below to get context-specific help, or ask me anything!`;
+      }
+    };
+
     const welcomeMessage: Message = {
       id: '1',
-      content: eventTitle 
-        ? `Hello! I'm here to help you with questions about "${eventTitle}" and other web development topics. What would you like to know?`
-        : `Hello! I'm your AI assistant for the Lovable Shipped Video Hub. I can help answer questions about our video content, web development, and guide you through using Lovable. What can I help you with?`,
+      content: getWelcomeMessage(),
       role: 'assistant',
       timestamp: new Date(),
     };
     setMessages([welcomeMessage]);
-  }, [eventTitle]);
+  }, [selectedEventIds, events]);
 
   useEffect(() => {
     // Scroll to bottom when new messages are added
@@ -67,7 +100,7 @@ export const AIChat = ({ eventId, eventTitle }: AIChatProps) => {
       const { data, error } = await supabase.functions.invoke('ai-chat', {
         body: {
           message: userMessage.content,
-          eventId: eventId,
+          eventIds: selectedEventIds.length > 0 ? selectedEventIds : undefined,
         },
       });
 
@@ -104,18 +137,63 @@ export const AIChat = ({ eventId, eventTitle }: AIChatProps) => {
     }
   };
 
+  const addEvent = (eventId: string) => {
+    if (!selectedEventIds.includes(eventId)) {
+      setSelectedEventIds(prev => [...prev, eventId]);
+    }
+  };
+
+  const removeEvent = (eventId: string) => {
+    setSelectedEventIds(prev => prev.filter(id => id !== eventId));
+  };
+
+  const availableEvents = events.filter(event => !selectedEventIds.includes(event.id));
+  const selectedEvents = events.filter(event => selectedEventIds.includes(event.id));
+
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2">
           <MessageCircle className="w-5 h-5" />
-          AI Assistant
-          {eventTitle && (
-            <span className="text-sm font-normal text-muted-foreground">
-              - {eventTitle}
-            </span>
-          )}
+          AI Video Assistant
         </CardTitle>
+        
+        {/* Video Selection */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Select onValueChange={addEvent}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select videos for context (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableEvents.map((event) => (
+                  <SelectItem key={event.id} value={event.id}>
+                    {event.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Selected Events */}
+          {selectedEvents.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {selectedEvents.map((event) => (
+                <Badge key={event.id} variant="secondary" className="flex items-center gap-1">
+                  {event.title}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={() => removeEvent(event.id)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
       </CardHeader>
       
       <CardContent className="flex-1 flex flex-col p-0">
