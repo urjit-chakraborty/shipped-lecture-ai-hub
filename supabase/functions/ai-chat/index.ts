@@ -23,10 +23,10 @@ serve(async (req) => {
     // Check if user has provided their own API keys
     const hasUserApiKeys = !!(userApiKeys?.openai || userApiKeys?.anthropic || userApiKeys?.gemini);
     
-    // Check rate limiting if no user API keys
+    // Check rate limiting if no user API keys, passing the message to handle __CHECK_USAGE__
     let rateLimitResult;
     try {
-      rateLimitResult = await checkRateLimit(req, hasUserApiKeys);
+      rateLimitResult = await checkRateLimit(req, hasUserApiKeys, message);
       if (!rateLimitResult.allowed) {
         console.log('Rate limit exceeded:', rateLimitResult.error);
         return new Response(JSON.stringify({ 
@@ -40,6 +40,15 @@ serve(async (req) => {
       console.error('Rate limiting check failed:', rateLimitError);
       // Continue without rate limiting if the check fails
       rateLimitResult = { allowed: true, currentCount: 0 };
+    }
+
+    // If this is just a usage check, return the current count
+    if (message === '__CHECK_USAGE__') {
+      return new Response(JSON.stringify({ 
+        currentCount: rateLimitResult.currentCount 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Get event context if eventIds are provided

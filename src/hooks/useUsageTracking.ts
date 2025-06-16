@@ -12,34 +12,22 @@ export const useUsageTracking = (hasUserApiKeys: boolean) => {
     queryFn: async () => {
       if (hasUserApiKeys) return null;
       
-      // Try to get usage count from backend by making a test call
+      // Make a special usage check call that doesn't increment the counter
       try {
         const { data, error } = await supabase.functions.invoke('ai-chat', {
           body: {
-            message: '__CHECK_USAGE__', // Special message to check usage without incrementing
+            message: '__CHECK_USAGE__',
             eventIds: undefined,
             userApiKeys: {},
           },
         });
         
-        // If we get a rate limit error, parse the current count
-        if (error && error.message?.includes('Daily message limit')) {
-          return 5; // At limit
-        }
-        
-        // If successful, we're not at limit, so fetch from database
-        const { data: usageData, error: dbError } = await supabase
-          .from('ai_chat_usage')
-          .select('message_count')
-          .eq('last_reset_date', new Date().toISOString().split('T')[0])
-          .maybeSingle();
-        
-        if (dbError) {
-          console.error('Error fetching usage from database:', dbError);
+        if (error) {
+          console.error('Error checking usage:', error);
           return 0;
         }
         
-        return usageData?.message_count || 0;
+        return data?.currentCount || 0;
       } catch (error) {
         console.error('Error checking usage:', error);
         return 0;

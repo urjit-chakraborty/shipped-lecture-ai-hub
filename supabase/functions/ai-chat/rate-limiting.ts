@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const DAILY_MESSAGE_LIMIT = 5;
 
-export async function checkRateLimit(req: Request, hasUserApiKeys: boolean) {
+export async function checkRateLimit(req: Request, hasUserApiKeys: boolean, message?: string) {
   if (hasUserApiKeys) {
     return { allowed: true, currentCount: 0 };
   }
@@ -42,6 +42,11 @@ export async function checkRateLimit(req: Request, hasUserApiKeys: boolean) {
 
   const currentCount = usageData?.message_count || 0;
 
+  // If this is just a usage check, return current count without incrementing
+  if (message === '__CHECK_USAGE__') {
+    return { allowed: currentCount < DAILY_MESSAGE_LIMIT, currentCount };
+  }
+
   if (currentCount >= DAILY_MESSAGE_LIMIT) {
     return { 
       allowed: false, 
@@ -50,7 +55,7 @@ export async function checkRateLimit(req: Request, hasUserApiKeys: boolean) {
     };
   }
 
-  // Increment usage count
+  // Increment usage count only for actual messages
   const { error: updateError } = await supabase
     .from('ai_chat_usage')
     .upsert({
