@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       events: {
         Row: {
+          ai_summary: string | null
           created_at: string
           description: string | null
           event_date: string
@@ -22,6 +23,7 @@ export type Database = {
           youtube_url: string | null
         }
         Insert: {
+          ai_summary?: string | null
           created_at?: string
           description?: string | null
           event_date: string
@@ -33,6 +35,7 @@ export type Database = {
           youtube_url?: string | null
         }
         Update: {
+          ai_summary?: string | null
           created_at?: string
           description?: string | null
           event_date?: string
