@@ -63,6 +63,17 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
   const remainingMessages = DAILY_MESSAGE_LIMIT - usageCount;
   const isAtLimit = usageCount >= DAILY_MESSAGE_LIMIT;
 
+  const handleSendMessage = () => {
+    sendMessage(usageCount, setUsageCount);
+  };
+
+  const handleInputKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader className="pb-3 flex-shrink-0">
@@ -88,8 +99,8 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
         <AIChatInput
           input={input}
           setInput={setInput}
-          onSendMessage={sendMessage}
-          onKeyPress={handleKeyPress}
+          onSendMessage={handleSendMessage}
+          onKeyPress={handleInputKeyPress}
           isLoading={isLoading}
           isAtLimit={isAtLimit}
           hasUserApiKeys={hasUserApiKeys}

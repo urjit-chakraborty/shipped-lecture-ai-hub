@@ -16,13 +16,12 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [usageCount, setUsageCount] = useState<number>(0);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const userOpenaiKey = localStorage.getItem('user_openai_api_key');
   const userAnthropicKey = localStorage.getItem('user_anthropic_api_key');
 
-  const sendMessage = async () => {
+  const sendMessage = async (usageCount: number, setUsageCount: (value: number | ((prev: number) => number)) => void) => {
     if (!input.trim() || isLoading) return;
 
     if (!hasUserApiKeys && usageCount >= DAILY_MESSAGE_LIMIT) {
@@ -96,7 +95,7 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      // This will be called from the component with the proper usage tracking
     }
   };
 
@@ -106,8 +105,6 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
     input,
     setInput,
     isLoading,
-    usageCount,
-    setUsageCount,
     scrollAreaRef,
     sendMessage,
     handleKeyPress,

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,11 +22,41 @@ const Index = () => {
       const {
         data,
         error
-      } = await supabase.from('events').select('*').order('event_date', {
-        ascending: true
-      });
+      } = await supabase
+        .from('events')
+        .select('*')
+        .order('event_date', { ascending: true });
+      
       if (error) throw error;
-      return data || [];
+      
+      // Custom sorting to ensure proper chronological order
+      const sortedEvents = (data || []).sort((a, b) => {
+        const aTitle = a.title.toLowerCase();
+        const bTitle = b.title.toLowerCase();
+        
+        // Kick-off should come first
+        if (aTitle.includes('kick-off') || aTitle.includes('kickoff')) return -1;
+        if (bTitle.includes('kick-off') || bTitle.includes('kickoff')) return 1;
+        
+        // Extract week numbers for proper ordering
+        const aWeekMatch = aTitle.match(/week\s*(\d+)/);
+        const bWeekMatch = bTitle.match(/week\s*(\d+)/);
+        
+        if (aWeekMatch && bWeekMatch) {
+          const aWeek = parseInt(aWeekMatch[1]);
+          const bWeek = parseInt(bWeekMatch[1]);
+          if (aWeek !== bWeek) return aWeek - bWeek;
+        }
+        
+        // If one has a week number and the other doesn't, prioritize the one with week number
+        if (aWeekMatch && !bWeekMatch) return -1;
+        if (!aWeekMatch && bWeekMatch) return 1;
+        
+        // Fall back to date ordering
+        return new Date(a.event_date).getTime() - new Date(b.event_date).getTime();
+      });
+      
+      return sortedEvents;
     }
   });
 
