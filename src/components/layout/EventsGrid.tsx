@@ -85,7 +85,7 @@ export const EventsGrid = ({ events, isLoading, handleAIChatClick }: EventsGridP
   };
 
   return (
-    <section className="container mx-auto px-4 pb-12">
+    <section id="featured-videos" className="container mx-auto px-4 pb-12">
       <div className="flex items-center justify-between mb-8">
         <h3 className="text-2xl font-bold text-slate-900">Featured Videos</h3>
         <Button variant="ghost" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
