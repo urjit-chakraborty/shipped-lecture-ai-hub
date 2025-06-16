@@ -12,6 +12,8 @@ export const useUsageTracking = (hasUserApiKeys: boolean) => {
     queryFn: async () => {
       if (hasUserApiKeys) return null;
       
+      console.log('useUsageTracking - Fetching usage count...');
+      
       // Make a special usage check call that doesn't increment the counter
       try {
         const { data, error } = await supabase.functions.invoke('ai-chat', {
@@ -27,6 +29,7 @@ export const useUsageTracking = (hasUserApiKeys: boolean) => {
           return 0;
         }
         
+        console.log('useUsageTracking - Usage check response:', data);
         return data?.currentCount || 0;
       } catch (error) {
         console.error('Error checking usage:', error);
@@ -41,21 +44,22 @@ export const useUsageTracking = (hasUserApiKeys: boolean) => {
 
   useEffect(() => {
     if (currentUsage !== undefined && currentUsage !== null) {
-      console.log('Updating usage count from IP check:', currentUsage);
+      console.log('useUsageTracking - Updating usage count from server:', currentUsage);
       setUsageCount(currentUsage);
     }
   }, [currentUsage]);
 
   const updateUsageCount = async (newCount: number | ((prev: number) => number)) => {
     const actualNewCount = typeof newCount === 'function' ? newCount(usageCount) : newCount;
-    console.log('Updating usage count to:', actualNewCount);
+    console.log('useUsageTracking - Updating local usage count to:', actualNewCount);
     setUsageCount(actualNewCount);
     
-    // Force refetch to sync with backend after a short delay
+    // Force refetch to sync with backend
     if (!hasUserApiKeys) {
+      console.log('useUsageTracking - Refetching usage count from server...');
       setTimeout(() => {
         refetch();
-      }, 500);
+      }, 1000); // Give backend time to update
     }
   };
 

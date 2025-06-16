@@ -25,6 +25,8 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
   const sendMessage = async (usageCount: number, setUsageCount: (value: number | ((prev: number) => number)) => void, refetchUsage?: () => void) => {
     if (!input.trim() || isLoading) return;
 
+    console.log('useAIChat - Current usage count before sending:', usageCount);
+
     if (!hasUserApiKeys && usageCount >= DAILY_MESSAGE_LIMIT) {
       toast.error(`Daily message limit of ${DAILY_MESSAGE_LIMIT} reached! Add your own API keys to continue chatting without limits.`, {
         duration: 5000,
@@ -51,8 +53,6 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
 
     try {
       console.log('useAIChat - Sending message with event IDs:', selectedEventIds);
-      console.log('useAIChat - Event IDs length:', selectedEventIds.length);
-      console.log('useAIChat - Event IDs are:', selectedEventIds);
       
       const { data, error } = await supabase.functions.invoke('ai-chat', {
         body: {
@@ -65,6 +65,9 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
           },
         },
       });
+
+      console.log('useAIChat - Response data:', data);
+      console.log('useAIChat - Response error:', error);
 
       if (error) {
         console.error('Supabase function error:', error);
@@ -84,15 +87,17 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
 
       setMessages(prev => [...prev, assistantMessage]);
 
-      // If using server-side rate limiting, refetch usage to get accurate count
+      // Update usage count after successful message
       if (!hasUserApiKeys) {
-        // Optimistically increment first
+        console.log('useAIChat - Incrementing usage count from', usageCount, 'to', usageCount + 1);
         setUsageCount(prev => prev + 1);
-        // Then refetch to get the accurate server count
+        
+        // Refetch to get the accurate server count after a delay
         if (refetchUsage) {
           setTimeout(() => {
+            console.log('useAIChat - Refetching usage count...');
             refetchUsage();
-          }, 200);
+          }, 1500);
         }
       }
     } catch (error) {
@@ -102,6 +107,7 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
       
       if (error.message?.includes('Daily message limit') || error.status === 429) {
         // Rate limit hit - update usage count to limit and refetch to sync
+        console.log('useAIChat - Rate limit hit, setting usage count to limit');
         setUsageCount(DAILY_MESSAGE_LIMIT);
         if (refetchUsage) {
           refetchUsage();

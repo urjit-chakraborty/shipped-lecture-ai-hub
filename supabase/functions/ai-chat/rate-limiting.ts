@@ -41,13 +41,16 @@ export async function checkRateLimit(req: Request, hasUserApiKeys: boolean, mess
   }
 
   const currentCount = usageData?.message_count || 0;
+  console.log('Current usage count for IP:', clientIP, '=', currentCount);
 
   // If this is just a usage check, return current count without incrementing
   if (message === '__CHECK_USAGE__') {
+    console.log('Usage check request - returning current count:', currentCount);
     return { allowed: currentCount < DAILY_MESSAGE_LIMIT, currentCount };
   }
 
   if (currentCount >= DAILY_MESSAGE_LIMIT) {
+    console.log('Rate limit exceeded for IP:', clientIP, 'Count:', currentCount);
     return { 
       allowed: false, 
       currentCount,
@@ -56,11 +59,14 @@ export async function checkRateLimit(req: Request, hasUserApiKeys: boolean, mess
   }
 
   // Increment usage count only for actual messages
+  const newCount = currentCount + 1;
+  console.log('Incrementing usage count from', currentCount, 'to', newCount);
+  
   const { error: updateError } = await supabase
     .from('ai_chat_usage')
     .upsert({
       ip_address: clientIP,
-      message_count: currentCount + 1,
+      message_count: newCount,
       last_reset_date: new Date().toISOString().split('T')[0],
     }, {
       onConflict: 'ip_address,last_reset_date'
@@ -71,5 +77,5 @@ export async function checkRateLimit(req: Request, hasUserApiKeys: boolean, mess
     // Don't fail the request, just log the error
   }
 
-  return { allowed: true, currentCount: currentCount + 1 };
+  return { allowed: true, currentCount: newCount };
 }
