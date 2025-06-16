@@ -9,33 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      ai_chat_usage: {
-        Row: {
-          created_at: string
-          id: string
-          ip_address: unknown
-          last_reset_date: string
-          message_count: number
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          ip_address: unknown
-          last_reset_date?: string
-          message_count?: number
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          ip_address?: unknown
-          last_reset_date?: string
-          message_count?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       events: {
         Row: {
           ai_summary: string | null
@@ -75,12 +48,44 @@ export type Database = {
         }
         Relationships: []
       }
+      user_credits: {
+        Row: {
+          created_at: string
+          credits_used: number
+          id: string
+          last_reset_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_used?: number
+          id?: string
+          last_reset_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_used?: number
+          id?: string
+          last_reset_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_user_credits: {
+        Args: { p_user_id: string; p_date: string; p_limit: number }
+        Returns: {
+          credits_used: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

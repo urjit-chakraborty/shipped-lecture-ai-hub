@@ -1,5 +1,6 @@
 
 import { useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Message {
   id: string;
@@ -13,16 +14,23 @@ export const useWelcomeMessage = (
   events: any[],
   hasUserApiKeys: boolean,
   usageCount: number,
-  dailyMessageLimit: number,
+  dailyCreditLimit: number,
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>
 ) => {
+  const { user } = useAuth();
+  
   useEffect(() => {
     const getWelcomeMessage = () => {
+      // Check if user is authenticated
+      if (!user) {
+        return `Hello! I'm your AI assistant for the Lovable Shipped Video Hub. To start chatting and get help with our video content and web development topics, please sign in to your account. Each account gets ${dailyCreditLimit} free credits daily.`;
+      }
+      
       if (!hasUserApiKeys) {
-        const remainingMessages = dailyMessageLimit - usageCount;
-        const usageText = remainingMessages > 0 
-          ? `You have ${remainingMessages} free messages remaining today.`
-          : 'You have reached your daily limit of free messages.';
+        const remainingCredits = dailyCreditLimit - usageCount;
+        const usageText = remainingCredits > 0 
+          ? `You have ${remainingCredits} credits remaining today.`
+          : 'You have used all your daily credits.';
         
         return `Hello! I'm here to help you with questions about video content and web development topics. ${usageText} To get unlimited access, please add your API keys using the "API Keys" button in the header.`;
       }
@@ -44,5 +52,5 @@ export const useWelcomeMessage = (
       timestamp: new Date(),
     };
     setMessages([welcomeMessage]);
-  }, [selectedEventIds, events, hasUserApiKeys, usageCount, dailyMessageLimit, setMessages]);
+  }, [selectedEventIds, events, hasUserApiKeys, usageCount, dailyCreditLimit, setMessages, user]);
 };

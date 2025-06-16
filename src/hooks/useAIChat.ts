@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Message {
   id: string;
@@ -10,9 +11,10 @@ interface Message {
   timestamp: Date;
 }
 
-const DAILY_MESSAGE_LIMIT = 5;
+const DAILY_CREDIT_LIMIT = 5;
 
 export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) => {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -25,10 +27,24 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
   const sendMessage = async (usageCount: number, setUsageCount: (value: number | ((prev: number) => number)) => void, refetchUsage?: () => void) => {
     if (!input.trim() || isLoading) return;
 
+    // Check if user is authenticated
+    if (!user) {
+      toast.error('Please sign in to use the AI assistant.', {
+        duration: 5000,
+        action: {
+          label: 'Sign In',
+          onClick: () => {
+            window.location.href = '/login';
+          }
+        }
+      });
+      return;
+    }
+
     console.log('useAIChat - Current usage count before sending:', usageCount);
 
-    if (!hasUserApiKeys && usageCount >= DAILY_MESSAGE_LIMIT) {
-      toast.error(`Daily message limit of ${DAILY_MESSAGE_LIMIT} reached! Add your own API keys to continue chatting without limits.`, {
+    if (!hasUserApiKeys && usageCount >= DAILY_CREDIT_LIMIT) {
+      toast.error(`Daily credit limit of ${DAILY_CREDIT_LIMIT} reached! Add your own API keys to continue chatting without limits.`, {
         duration: 5000,
         action: {
           label: 'Add API Keys',
@@ -71,6 +87,21 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
 
       if (error) {
         console.error('Supabase function error:', error);
+        
+        // Handle authentication errors
+        if (error.status === 401 || error.message?.includes('Authentication required')) {
+          toast.error('Please sign in to use the AI assistant.', {
+            duration: 5000,
+            action: {
+              label: 'Sign In',
+              onClick: () => {
+                window.location.href = '/login';
+              }
+            }
+          });
+          return;
+        }
+        
         throw error;
       }
 
@@ -105,14 +136,14 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
       
       let errorMessage = 'Sorry, I encountered an error. Please try again.';
       
-      if (error.message?.includes('Daily message limit') || error.status === 429) {
+      if (error.message?.includes('Daily credit limit') || error.status === 429) {
         // Rate limit hit - update usage count to limit and refetch to sync
-        console.log('useAIChat - Rate limit hit, setting usage count to limit');
-        setUsageCount(DAILY_MESSAGE_LIMIT);
+        console.log('useAIChat - Credit limit hit, setting usage count to limit');
+        setUsageCount(DAILY_CREDIT_LIMIT);
         if (refetchUsage) {
           refetchUsage();
         }
-        toast.error(`Daily message limit of ${DAILY_MESSAGE_LIMIT} reached! Add your own API keys to continue chatting without limits.`, {
+        toast.error(`Daily credit limit of ${DAILY_CREDIT_LIMIT} reached! Add your own API keys to continue chatting without limits.`, {
           duration: 6000,
           action: {
             label: 'Add API Keys',
@@ -121,7 +152,18 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
             }
           }
         });
-        errorMessage = 'Daily message limit reached. Please add your own API keys to continue using the AI assistant.';
+        errorMessage = 'Daily credit limit reached. Please add your own API keys to continue using the AI assistant.';
+      } else if (error.message?.includes('Authentication required') || error.status === 401) {
+        toast.error('Please sign in to use the AI assistant.', {
+          duration: 5000,
+          action: {
+            label: 'Sign In',
+            onClick: () => {
+              window.location.href = '/login';
+            }
+          }
+        });
+        errorMessage = 'Authentication required. Please sign in to use the AI assistant.';
       } else if (error.message?.includes('No AI API keys')) {
         toast.error('AI service is temporarily unavailable. Please add your own API keys.', {
           duration: 5000,
@@ -168,6 +210,6 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
     scrollAreaRef,
     sendMessage,
     handleKeyPress,
-    DAILY_MESSAGE_LIMIT,
+    DAILY_MESSAGE_LIMIT: DAILY_CREDIT_LIMIT,
   };
 };

@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { AIChatHeader } from './AIChatHeader';
 import { AIChatMessages } from './AIChatMessages';
 import { AIChatInput } from './AIChatInput';
@@ -9,14 +10,18 @@ import { useUsageTracking } from '@/hooks/useUsageTracking';
 import { useAIChat } from '@/hooks/useAIChat';
 import { useWelcomeMessage } from '@/hooks/useWelcomeMessage';
 import { useScrollToBottom } from '@/hooks/useScrollToBottom';
+import { useAuth } from '@/contexts/AuthContext';
+import { LogIn } from 'lucide-react';
 
 interface AIChatProps {
   preselectedEventIds?: string[];
 }
 
-const DAILY_MESSAGE_LIMIT = 5;
+const DAILY_CREDIT_LIMIT = 5;
 
 export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
+  const { user } = useAuth();
+  
   // Check for user API keys
   const userOpenaiKey = localStorage.getItem('user_openai_api_key');
   const userAnthropicKey = localStorage.getItem('user_anthropic_api_key');
@@ -33,7 +38,7 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
     events,
   } = useEventSelection(preselectedEventIds);
 
-  // Usage tracking hook with IP-based checking
+  // Usage tracking hook with user-based checking
   const { usageCount, setUsageCount, refetchUsage } = useUsageTracking(hasUserApiKeys);
 
   // Chat functionality hook
@@ -54,15 +59,15 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
     events,
     hasUserApiKeys,
     usageCount,
-    DAILY_MESSAGE_LIMIT,
+    DAILY_CREDIT_LIMIT,
     setMessages
   );
 
   // Scroll to bottom hook
   useScrollToBottom(messages, isLoading, scrollAreaRef);
 
-  const remainingMessages = DAILY_MESSAGE_LIMIT - usageCount;
-  const isAtLimit = usageCount >= DAILY_MESSAGE_LIMIT;
+  const remainingCredits = DAILY_CREDIT_LIMIT - usageCount;
+  const isAtLimit = usageCount >= DAILY_CREDIT_LIMIT;
 
   const handleSendMessage = () => {
     sendMessage(usageCount, setUsageCount, refetchUsage);
@@ -75,14 +80,46 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
     }
   };
 
+  // Show sign-in prompt if user is not authenticated
+  if (!user) {
+    return (
+      <Card className="h-[600px] flex flex-col">
+        <CardHeader className="pb-3 flex-shrink-0">
+          <AIChatHeader
+            hasUserApiKeys={hasUserApiKeys}
+            isAtLimit={isAtLimit}
+            remainingMessages={remainingCredits}
+            dailyMessageLimit={DAILY_CREDIT_LIMIT}
+            availableEvents={availableEvents}
+            selectedEvents={selectedEvents}
+            addEvent={addEvent}
+            removeEvent={removeEvent}
+          />
+        </CardHeader>
+        
+        <CardContent className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <LogIn className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Sign In Required</h3>
+          <p className="text-muted-foreground mb-6">
+            Please sign in to your account to start chatting with the AI assistant. 
+            Each account gets {DAILY_CREDIT_LIMIT} free credits daily.
+          </p>
+          <Button onClick={() => window.location.href = '/login'}>
+            Sign In
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader className="pb-3 flex-shrink-0">
         <AIChatHeader
           hasUserApiKeys={hasUserApiKeys}
           isAtLimit={isAtLimit}
-          remainingMessages={remainingMessages}
-          dailyMessageLimit={DAILY_MESSAGE_LIMIT}
+          remainingMessages={remainingCredits}
+          dailyMessageLimit={DAILY_CREDIT_LIMIT}
           availableEvents={availableEvents}
           selectedEvents={selectedEvents}
           addEvent={addEvent}
@@ -105,7 +142,7 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
           isLoading={isLoading}
           isAtLimit={isAtLimit}
           hasUserApiKeys={hasUserApiKeys}
-          remainingMessages={remainingMessages}
+          remainingMessages={remainingCredits}
         />
       </CardContent>
     </Card>

@@ -23,16 +23,21 @@ serve(async (req) => {
     // Check if user has provided their own API keys
     const hasUserApiKeys = !!(userApiKeys?.openai || userApiKeys?.anthropic || userApiKeys?.gemini);
     
-    // Check rate limiting if no user API keys, passing the message to handle __CHECK_USAGE__
+    // Check rate limiting (now user-based), passing the message to handle __CHECK_USAGE__
     let rateLimitResult;
     try {
       rateLimitResult = await checkRateLimit(req, hasUserApiKeys, message);
       if (!rateLimitResult.allowed) {
-        console.log('Rate limit exceeded:', rateLimitResult.error);
+        console.log('Rate limit exceeded or auth required:', rateLimitResult.error);
+        
+        // Return different status codes based on the error type
+        const statusCode = rateLimitResult.requiresAuth ? 401 : 429;
+        
         return new Response(JSON.stringify({ 
-          error: rateLimitResult.error 
+          error: rateLimitResult.error,
+          requiresAuth: rateLimitResult.requiresAuth
         }), {
-          status: 429,
+          status: statusCode,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
@@ -77,9 +82,9 @@ serve(async (req) => {
     if (error.message?.includes('No AI API keys')) {
       errorMessage = error.message;
       statusCode = 503; // Service Unavailable
-    } else if (error.message?.includes('Daily message limit')) {
+    } else if (error.message?.includes('Daily credit limit') || error.message?.includes('Authentication required')) {
       errorMessage = error.message;
-      statusCode = 429; // Too Many Requests
+      statusCode = error.message?.includes('Authentication required') ? 401 : 429;
     } else if (error.message?.includes('API error')) {
       errorMessage = 'AI service is temporarily unavailable. Please try again later.';
       statusCode = 502; // Bad Gateway

@@ -1,6 +1,7 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
-const DAILY_MESSAGE_LIMIT = 5;
+const DAILY_CREDIT_LIMIT = 5;
 
 export async function checkRateLimit(req: Request, hasUserApiKeys: boolean, message?: string) {
   if (hasUserApiKeys) {
@@ -12,25 +13,39 @@ export async function checkRateLimit(req: Request, hasUserApiKeys: boolean, mess
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  // Get client IP with improved detection
-  const forwardedFor = req.headers.get('x-forwarded-for');
-  const realIp = req.headers.get('x-real-ip');
-  const cfConnectingIp = req.headers.get('cf-connecting-ip');
-  const trueClientIp = req.headers.get('true-client-ip');
-  
-  let clientIP = '127.0.0.1';
-  if (cfConnectingIp) {
-    clientIP = cfConnectingIp.trim();
-  } else if (trueClientIp) {
-    clientIP = trueClientIp.trim();
-  } else if (forwardedFor) {
-    // Take the first IP from the comma-separated list
-    clientIP = forwardedFor.split(',')[0].trim();
-  } else if (realIp) {
-    clientIP = realIp.trim();
+  // Get the authorization header to extract the user
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader) {
+    return { 
+      allowed: false, 
+      currentCount: 0,
+      error: 'Authentication required. Please sign in to use the AI assistant.',
+      requiresAuth: true
+    };
   }
 
-  console.log('Client IP determined as:', clientIP);
+  // Create a client with the user's token to get the authenticated user
+  const userSupabase = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: {
+      headers: {
+        authorization: authHeader,
+      },
+    },
+  });
+
+  const { data: { user }, error: userError } = await userSupabase.auth.getUser();
+  
+  if (userError || !user) {
+    console.error('Error getting user:', userError);
+    return { 
+      allowed: false, 
+      currentCount: 0,
+      error: 'Authentication required. Please sign in to use the AI assistant.',
+      requiresAuth: true
+    };
+  }
+
+  console.log('User authenticated:', user.id);
 
   // Get current date in UTC
   const now = new Date();
@@ -38,44 +53,44 @@ export async function checkRateLimit(req: Request, hasUserApiKeys: boolean, mess
 
   // For usage check, just return the current count without incrementing
   if (message === '__CHECK_USAGE__') {
-    const { data: usageData, error: usageError } = await supabase
-      .from('ai_chat_usage')
-      .select('message_count')
-      .eq('ip_address', clientIP)
+    const { data: creditsData, error: creditsError } = await supabase
+      .from('user_credits')
+      .select('credits_used')
+      .eq('user_id', user.id)
       .eq('last_reset_date', today)
       .single();
 
-    if (usageError && usageError.code !== 'PGRST116') {
-      console.error('Error checking usage:', usageError);
+    if (creditsError && creditsError.code !== 'PGRST116') {
+      console.error('Error checking credits:', creditsError);
       throw new Error('Failed to check usage limits');
     }
 
-    const currentCount = usageData?.message_count || 0;
-    console.log('Usage check - Current count for IP:', clientIP, '=', currentCount);
-    return { allowed: currentCount < DAILY_MESSAGE_LIMIT, currentCount };
+    const currentCount = creditsData?.credits_used || 0;
+    console.log('Usage check - Current credits used for user:', user.id, '=', currentCount);
+    return { allowed: currentCount < DAILY_CREDIT_LIMIT, currentCount };
   }
 
   // For actual messages, use the atomic increment function
-  const { data: usageData, error: usageError } = await supabase.rpc('increment_message_count', {
-    p_ip_address: clientIP,
+  const { data: creditsData, error: creditsError } = await supabase.rpc('increment_user_credits', {
+    p_user_id: user.id,
     p_date: today,
-    p_limit: DAILY_MESSAGE_LIMIT
+    p_limit: DAILY_CREDIT_LIMIT
   });
 
-  if (usageError) {
-    console.error('Error updating usage:', usageError);
+  if (creditsError) {
+    console.error('Error updating credits:', creditsError);
     throw new Error('Failed to check usage limits');
   }
 
-  const currentCount = usageData?.message_count || 0;
-  console.log('Message request - Current count for IP:', clientIP, '=', currentCount);
+  const currentCount = creditsData?.credits_used || 0;
+  console.log('Message request - Current credits used for user:', user.id, '=', currentCount);
 
-  if (currentCount > DAILY_MESSAGE_LIMIT) {
-    console.log('Rate limit exceeded for IP:', clientIP, 'Count:', currentCount);
+  if (currentCount > DAILY_CREDIT_LIMIT) {
+    console.log('Credit limit exceeded for user:', user.id, 'Credits used:', currentCount);
     return { 
       allowed: false, 
       currentCount,
-      error: `Daily message limit of ${DAILY_MESSAGE_LIMIT} reached. Please add your own API keys to continue using the AI assistant.`
+      error: `Daily credit limit of ${DAILY_CREDIT_LIMIT} reached. Please add your own API keys to continue using the AI assistant.`
     };
   }
 
