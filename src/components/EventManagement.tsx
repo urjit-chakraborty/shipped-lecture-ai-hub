@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Calendar, Clock, Edit, Trash2, Plus, MessageCircle } from 'lucide-react';
+import { Calendar, Clock, Edit, Trash2, Plus, MessageCircle, Download, Sparkles, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -19,6 +19,7 @@ interface Event {
   youtube_url?: string;
   description?: string;
   transcription?: string;
+  ai_summary?: string;
   event_date: string;
   created_at: string;
   updated_at: string;
@@ -29,6 +30,7 @@ export const EventManagement = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [fetchingTranscript, setFetchingTranscript] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     event_type: 'Lecture',
@@ -136,6 +138,34 @@ export const EventManagement = () => {
     } catch (error) {
       console.error('Error deleting event:', error);
       toast.error('Failed to delete event');
+    }
+  };
+
+  const handleFetchTranscript = async (event: Event) => {
+    if (!event.youtube_url) {
+      toast.error('No YouTube URL provided for this event');
+      return;
+    }
+
+    setFetchingTranscript(event.id);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-transcript-summary', {
+        body: {
+          eventId: event.id,
+          youtubeUrl: event.youtube_url,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(data.message);
+      fetchEvents(); // Refresh the events list
+    } catch (error) {
+      console.error('Error fetching transcript:', error);
+      toast.error('Failed to fetch transcript and generate summary');
+    } finally {
+      setFetchingTranscript(null);
     }
   };
 
@@ -258,6 +288,7 @@ export const EventManagement = () => {
                   <TableHead>Type</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Transcript</TableHead>
+                  <TableHead>AI Summary</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -275,10 +306,33 @@ export const EventManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2">
                         <MessageCircle className="h-4 w-4" />
                         <span className={event.transcription ? 'text-green-600' : 'text-gray-400'}>
                           {event.transcription ? 'Available' : 'Not set'}
+                        </span>
+                        {event.youtube_url && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleFetchTranscript(event)}
+                            disabled={fetchingTranscript === event.id}
+                            className="ml-2"
+                          >
+                            {fetchingTranscript === event.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Sparkles className="h-4 w-4" />
+                        <span className={event.ai_summary ? 'text-green-600' : 'text-gray-400'}>
+                          {event.ai_summary ? 'Available' : 'Not generated'}
                         </span>
                       </div>
                     </TableCell>

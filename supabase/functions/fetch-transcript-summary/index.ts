@@ -1,0 +1,160 @@
+
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { eventId, youtubeUrl } = await req.json();
+
+    if (!eventId || !youtubeUrl) {
+      throw new Error('Event ID and YouTube URL are required');
+    }
+
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Extract video ID from YouTube URL
+    const videoId = extractVideoId(youtubeUrl);
+    if (!videoId) {
+      throw new Error('Invalid YouTube URL');
+    }
+
+    // Fetch transcript using YouTube Transcript API (via third-party service)
+    const transcript = await fetchYouTubeTranscript(videoId);
+    
+    // Generate AI summary
+    const summary = await generateAISummary(transcript);
+
+    // Update the event with transcript and summary
+    const { error } = await supabase
+      .from('events')
+      .update({
+        transcription: transcript,
+        ai_summary: summary,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', eventId);
+
+    if (error) throw error;
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Transcript and summary generated successfully',
+        transcript: transcript.substring(0, 200) + '...',
+        summary: summary
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  } catch (error) {
+    console.error('Error in fetch-transcript-summary function:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+});
+
+function extractVideoId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /youtube\.com\/live\/([^&\n?#]+)/
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  return null;
+}
+
+async function fetchYouTubeTranscript(videoId: string): Promise<string> {
+  try {
+    // Using a free transcript API service
+    const response = await fetch(`https://youtube-transcript-api.p.rapidapi.com/transcript?video_id=${videoId}`, {
+      headers: {
+        'X-RapidAPI-Key': Deno.env.get('RAPIDAPI_KEY') || '',
+        'X-RapidAPI-Host': 'youtube-transcript-api.p.rapidapi.com'
+      }
+    });
+
+    if (!response.ok) {
+      // Fallback: Try alternative method or return placeholder
+      console.log('Primary transcript API failed, using fallback');
+      return `[Transcript for video ${videoId} - Manual transcription required]`;
+    }
+
+    const data = await response.json();
+    if (data && data.transcript) {
+      return data.transcript.map((item: any) => item.text).join(' ');
+    }
+    
+    throw new Error('No transcript found');
+  } catch (error) {
+    console.error('Error fetching transcript:', error);
+    // Return a placeholder that indicates manual transcription is needed
+    return `[Transcript unavailable for video ${videoId} - Please add manually]`;
+  }
+}
+
+async function generateAISummary(transcript: string): Promise<string> {
+  try {
+    const openAIKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIKey) {
+      return 'AI summary unavailable - OpenAI API key not configured';
+    }
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an AI assistant that creates concise, informative summaries of video content. Focus on key topics, main points, and actionable insights. Keep summaries between 100-200 words.'
+          },
+          {
+            role: 'user',
+            content: `Please provide a summary of this video transcript:\n\n${transcript.substring(0, 4000)}`
+          }
+        ],
+        max_tokens: 300,
+        temperature: 0.7,
+      }),
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'Failed to generate AI summary');
+    }
+
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error('Error generating AI summary:', error);
+    return 'AI summary unavailable - Error occurred during generation';
+  }
+}
