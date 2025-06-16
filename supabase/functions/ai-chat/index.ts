@@ -18,6 +18,12 @@ serve(async (req) => {
   try {
     const { message, eventIds, userApiKeys } = await req.json();
 
+    console.log('Received request:', { 
+      message: message?.substring(0, 100) + '...', 
+      eventIds, 
+      hasUserApiKeys: !!(userApiKeys?.openai || userApiKeys?.anthropic) 
+    });
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -76,19 +82,56 @@ serve(async (req) => {
     // Get event context if eventIds are provided
     let eventContext = '';
     if (eventIds && eventIds.length > 0) {
-      const { data: events } = await supabase
+      console.log('Fetching events for IDs:', eventIds);
+      
+      const { data: events, error: eventsError } = await supabase
         .from('events')
-        .select('title, description, transcription, ai_summary')
+        .select('id, title, description, transcription, ai_summary')
         .in('id', eventIds);
 
+      console.log('Events query result:', { 
+        eventsCount: events?.length || 0, 
+        error: eventsError,
+        eventTitles: events?.map(e => e.title)
+      });
+
+      if (eventsError) {
+        console.error('Error fetching events:', eventsError);
+        throw new Error('Failed to fetch video context');
+      }
+
       if (events && events.length > 0) {
-        eventContext = events.map(event => {
-          let context = `Event: ${event.title}\n`;
-          if (event.description) context += `Description: ${event.description}\n`;
-          if (event.transcription) context += `Transcript: ${event.transcription}\n`;
-          if (event.ai_summary) context += `AI Summary: ${event.ai_summary}\n`;
-          return context;
-        }).join('\n---\n');
+        // Filter out events without transcription
+        const eventsWithTranscripts = events.filter(event => event.transcription);
+        console.log('Events with transcripts:', eventsWithTranscripts.length);
+
+        if (eventsWithTranscripts.length === 0) {
+          console.log('No events have transcripts available');
+          eventContext = 'Note: The selected videos do not have transcripts available yet.';
+        } else {
+          eventContext = eventsWithTranscripts.map(event => {
+            let context = `=== VIDEO: ${event.title} ===\n`;
+            if (event.description) {
+              context += `Description: ${event.description}\n\n`;
+            }
+            if (event.ai_summary) {
+              context += `AI Summary: ${event.ai_summary}\n\n`;
+            }
+            if (event.transcription) {
+              // Truncate very long transcripts to avoid token limits
+              const transcript = event.transcription.length > 8000 
+                ? event.transcription.substring(0, 8000) + '... [transcript truncated for length]'
+                : event.transcription;
+              context += `Full Transcript:\n${transcript}\n`;
+            }
+            return context;
+          }).join('\n==========================================\n\n');
+
+          console.log('Built context length:', eventContext.length);
+        }
+      } else {
+        console.log('No events found for provided IDs');
+        eventContext = 'Note: No videos found for the selected IDs.';
       }
     }
 
@@ -126,8 +169,17 @@ serve(async (req) => {
 
 async function callOpenAI(message: string, eventContext: string, apiKey: string) {
   const systemMessage = eventContext
-    ? `You are an AI assistant for the Lovable Shipped Video Hub. Help users with questions about web development and the video content. Here's the context from selected videos:\n\n${eventContext}\n\nAnswer questions based on this context when relevant, and provide general web development guidance when needed.`
+    ? `You are an AI assistant for the Lovable Shipped Video Hub. Help users with questions about web development and the video content they've selected. 
+
+IMPORTANT: You have been provided with specific video content below. Use this content to answer questions when relevant. Reference specific details from the transcripts when possible.
+
+VIDEO CONTENT:
+${eventContext}
+
+Answer questions based on this video content when relevant, and provide general web development guidance when needed. When referencing the videos, mention specific details from the transcripts to show you're using the actual content.`
     : 'You are an AI assistant for the Lovable Shipped Video Hub. Help users with questions about web development, Lovable platform, and general programming topics.';
+
+  console.log('Calling OpenAI with system message length:', systemMessage.length);
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -148,6 +200,7 @@ async function callOpenAI(message: string, eventContext: string, apiKey: string)
 
   if (!response.ok) {
     const error = await response.json();
+    console.error('OpenAI API error:', error);
     throw new Error(`OpenAI API error: ${error.error?.message || 'Unknown error'}`);
   }
 
@@ -157,8 +210,17 @@ async function callOpenAI(message: string, eventContext: string, apiKey: string)
 
 async function callAnthropic(message: string, eventContext: string, apiKey: string) {
   const systemMessage = eventContext
-    ? `You are an AI assistant for the Lovable Shipped Video Hub. Help users with questions about web development and the video content. Here's the context from selected videos:\n\n${eventContext}\n\nAnswer questions based on this context when relevant, and provide general web development guidance when needed.`
+    ? `You are an AI assistant for the Lovable Shipped Video Hub. Help users with questions about web development and the video content they've selected.
+
+IMPORTANT: You have been provided with specific video content below. Use this content to answer questions when relevant. Reference specific details from the transcripts when possible.
+
+VIDEO CONTENT:
+${eventContext}
+
+Answer questions based on this video content when relevant, and provide general web development guidance when needed. When referencing the videos, mention specific details from the transcripts to show you're using the actual content.`
     : 'You are an AI assistant for the Lovable Shipped Video Hub. Help users with questions about web development, Lovable platform, and general programming topics.';
+
+  console.log('Calling Anthropic with system message length:', systemMessage.length);
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -179,6 +241,7 @@ async function callAnthropic(message: string, eventContext: string, apiKey: stri
 
   if (!response.ok) {
     const error = await response.json();
+    console.error('Anthropic API error:', error);
     throw new Error(`Anthropic API error: ${error.error?.message || 'Unknown error'}`);
   }
 
