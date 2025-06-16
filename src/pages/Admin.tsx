@@ -41,7 +41,7 @@ const Admin = () => {
           <div className="flex justify-between items-center py-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-sm text-gray-500">Lovable Shipped Lecture Hub</p>
+              <p className="text-sm text-gray-500">Lovable Shipped Video Hub</p>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">Welcome, {user.email}</span>
@@ -60,7 +60,7 @@ const Admin = () => {
             <CardHeader>
               <CardTitle>Event Management</CardTitle>
               <CardDescription>
-                Manage lectures, fireside chats, workshops, and livestreams for the hub
+                Manage videos, fireside chats, workshops, and livestreams for the hub
               </CardDescription>
             </CardHeader>
             <CardContent>
