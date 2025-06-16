@@ -1,12 +1,14 @@
 
 import { useState } from "react";
-import { Menu, X, MessageCircle, Calendar, Rocket } from "lucide-react";
+import { Menu, X, MessageCircle, Calendar, Rocket, LogIn, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerClose } from "@/components/ui/drawer";
 import { AIChat } from "@/components/AIChat";
 import { APIKeyManager } from "@/components/APIKeyManager";
+import { useAuth } from "@/contexts/AuthContext";
 import { smoothScrollToSection } from "@/utils/smoothScroll";
+import { toast } from "sonner";
 
 interface HeaderProps {
   isAIChatOpen: boolean;
@@ -22,10 +24,20 @@ export const Header = ({
   handleAIChatClick 
 }: HeaderProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   const handleVideosClick = (e: React.MouseEvent) => {
     e.preventDefault();
     smoothScrollToSection('featured-videos');
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success('Successfully signed out');
+    } catch (error) {
+      toast.error('Failed to sign out');
+    }
   };
 
   return (
@@ -56,7 +68,9 @@ export const Header = ({
             <a href="/calendar" className="text-slate-600 hover:text-blue-600 transition-colors duration-200">
               Calendar
             </a>
-            <APIKeyManager />
+            
+            {user && <APIKeyManager />}
+            
             <Dialog open={isAIChatOpen} onOpenChange={setIsAIChatOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50" onClick={() => handleAIChatClick()}>
@@ -71,6 +85,31 @@ export const Header = ({
                 <AIChat preselectedEventIds={aiChatPreselectedEvents} />
               </DialogContent>
             </Dialog>
+
+            {user ? (
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 text-sm text-slate-600">
+                  <User className="w-4 h-4" />
+                  <span>{user.email}</span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={handleSignOut}
+                  className="text-slate-600 hover:text-blue-600"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <Button asChild variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50">
+                <a href="/auth">
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Sign In
+                </a>
+              </Button>
+            )}
           </nav>
 
           {/* Mobile Hamburger Menu */}
@@ -108,9 +147,13 @@ export const Header = ({
                   >
                     Calendar
                   </a>
-                  <div className="py-3">
-                    <APIKeyManager />
-                  </div>
+                  
+                  {user && (
+                    <div className="py-3">
+                      <APIKeyManager />
+                    </div>
+                  )}
+                  
                   <div className="pt-2">
                     <Dialog open={isAIChatOpen} onOpenChange={setIsAIChatOpen}>
                       <DialogTrigger asChild>
@@ -134,6 +177,40 @@ export const Header = ({
                       </DialogContent>
                     </Dialog>
                   </div>
+
+                  {user ? (
+                    <div className="space-y-3 pt-4 border-t">
+                      <div className="flex items-center space-x-2 text-sm text-slate-600">
+                        <User className="w-4 h-4" />
+                        <span>{user.email}</span>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start text-slate-600 hover:text-blue-600"
+                        onClick={() => {
+                          handleSignOut();
+                          setIsMobileMenuOpen(false);
+                        }}
+                      >
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Sign Out
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="pt-4 border-t">
+                      <Button 
+                        asChild
+                        variant="outline" 
+                        className="w-full border-blue-200 text-blue-600 hover:bg-blue-50"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <a href="/auth">
+                          <LogIn className="w-4 h-4 mr-2" />
+                          Sign In
+                        </a>
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </DrawerContent>
             </Drawer>
