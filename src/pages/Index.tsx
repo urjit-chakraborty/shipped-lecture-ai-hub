@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Hero } from "@/components/layout/Hero";
 import { EventsGrid } from "@/components/layout/EventsGrid";
-import { CallToAction } from "@/components/layout/CallToAction";
 import { Footer } from "@/components/layout/Footer";
 
 const Index = () => {
@@ -56,8 +55,6 @@ const Index = () => {
         isLoading={isLoading}
         handleAIChatClick={handleAIChatClick}
       />
-      
-      <CallToAction />
       
       <Footer />
     </div>
