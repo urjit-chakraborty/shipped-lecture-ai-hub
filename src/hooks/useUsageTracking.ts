@@ -28,7 +28,7 @@ export const useUsageTracking = (hasUserApiKeys: boolean) => {
     enabled: !hasUserApiKeys,
     refetchOnWindowFocus: false,
     staleTime: 0, // Always fetch fresh data
-    cacheTime: 0, // Don't cache the data
+    gcTime: 0, // Don't cache the data (renamed from cacheTime)
   });
 
   useEffect(() => {
