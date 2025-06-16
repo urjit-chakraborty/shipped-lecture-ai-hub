@@ -1,4 +1,3 @@
-
 import { Play, Calendar, Clock, Users, MessageCircle, Rocket, Zap, Code, Coffee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,11 +11,9 @@ import { AISummaryDialog } from "@/components/AISummaryDialog";
 import { APIKeyManager } from "@/components/APIKeyManager";
 import { useState } from "react";
 import { getYouTubeThumbnailUrl } from "@/utils/youtube";
-
 const Index = () => {
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [aiChatPreselectedEvents, setAiChatPreselectedEvents] = useState<string[]>([]);
-
   const {
     data: events = [],
     isLoading
@@ -33,7 +30,6 @@ const Index = () => {
       return data || [];
     }
   });
-
   const getCategoryColor = (category: string) => {
     switch (category) {
       case "Lecture":
@@ -48,7 +44,6 @@ const Index = () => {
         return "bg-gray-100 text-gray-800 hover:bg-gray-200";
     }
   };
-
   const formatLocalTime = (utcDate: string) => {
     const date = new Date(utcDate);
     return {
@@ -57,7 +52,6 @@ const Index = () => {
       year: format(date, 'yyyy')
     };
   };
-
   const getEventStatus = (event: any) => {
     const eventDate = new Date(event.event_date);
     const hasVideo = !!event.youtube_url;
@@ -79,21 +73,18 @@ const Index = () => {
       };
     }
   };
-
   const handleEventClick = (event: any) => {
     const eventStatus = getEventStatus(event);
     if (eventStatus.status === 'available') {
       window.open(event.youtube_url, '_blank');
     }
   };
-
   const handlePlayButtonClick = (event: any, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click event
     if (event.youtube_url) {
       window.open(event.youtube_url, '_blank');
     }
   };
-
   const handleAIChatClick = (event?: any) => {
     if (event) {
       // Pre-select specific event
@@ -104,7 +95,6 @@ const Index = () => {
     }
     setIsAIChatOpen(true);
   };
-
   return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-50">
@@ -180,7 +170,7 @@ const Index = () => {
             <CardContent className="p-6">
               <Coffee className="w-12 h-12 text-amber-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-amber-900 mb-2">Support the Creator</h3>
-              <p className="text-amber-700 mb-4">Enjoying the content? Buy me a coffee to keep the videos coming!</p>
+              <p className="text-amber-700 mb-4">Enjoying this app? Buy me a coffee to support me!</p>
               <Button asChild className="bg-amber-500 hover:bg-amber-600 text-white">
                 <a href="https://coff.ee/urjitc" target="_blank" rel="noopener noreferrer">
                   <Coffee className="w-4 h-4 mr-2" />
@@ -217,7 +207,7 @@ const Index = () => {
           const localTime = formatLocalTime(event.event_date);
           const thumbnailUrl = event.youtube_url ? getYouTubeThumbnailUrl(event.youtube_url) : null;
           const hasTranscript = !!event.transcription; // Check if transcript exists
-          
+
           return <Card key={event.id} className="group hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm border-slate-200 hover:border-blue-200 overflow-hidden">
                   <div className="relative">
                     {thumbnailUrl ? <div className="w-full h-48 relative overflow-hidden bg-black flex items-center justify-center">
@@ -281,12 +271,10 @@ const Index = () => {
                         </Button>}
                       
                       {/* Only show AI chat button if transcript exists */}
-                      {hasTranscript && (
-                        <Button variant="ghost" size="sm" className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleAIChatClick(event)}>
+                      {hasTranscript && <Button variant="ghost" size="sm" className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleAIChatClick(event)}>
                           <MessageCircle className="w-4 h-4 mr-2" />
                           Ask AI about this video
-                        </Button>
-                      )}
+                        </Button>}
 
                       {/* AI Summary Button - only show if AI summary exists */}
                       {event.ai_summary && <AISummaryDialog eventTitle={event.title} aiSummary={event.ai_summary} eventType={event.event_type} />}
@@ -354,5 +342,4 @@ const Index = () => {
       </footer>
     </div>;
 };
-
 export default Index;
