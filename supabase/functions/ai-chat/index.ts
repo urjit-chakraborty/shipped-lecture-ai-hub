@@ -25,10 +25,10 @@ serve(async (req) => {
       hasUserApiKeys: !!(userApiKeys?.openai || userApiKeys?.anthropic) 
     });
 
-    // Initialize Supabase client
+    // Initialize Supabase client with service role key for database access
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Check if user has provided their own API keys
     const hasUserApiKeys = !!(userApiKeys?.openai || userApiKeys?.anthropic);
