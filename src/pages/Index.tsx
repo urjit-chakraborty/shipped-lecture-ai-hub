@@ -1,9 +1,9 @@
-
-import { Play, Calendar, Clock, Users, MessageCircle, Rocket, Zap, Code, Coffee } from "lucide-react";
+import { Play, Calendar, Clock, Users, MessageCircle, Rocket, Zap, Code, Coffee, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerClose } from "@/components/ui/drawer";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isPast, isFuture } from "date-fns";
@@ -12,10 +12,13 @@ import { AISummaryDialog } from "@/components/AISummaryDialog";
 import { APIKeyManager } from "@/components/APIKeyManager";
 import { useState } from "react";
 import { getYouTubeThumbnailUrl } from "@/utils/youtube";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [aiChatPreselectedEvents, setAiChatPreselectedEvents] = useState<string[]>([]);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const {
     data: events = [],
@@ -121,6 +124,8 @@ const Index = () => {
                 <p className="text-sm text-slate-600">Video Hub</p>
               </div>
             </div>
+            
+            {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-6">
               <a href="#" className="text-slate-600 hover:text-blue-600 transition-colors duration-200">
                 Videos
@@ -144,6 +149,69 @@ const Index = () => {
                 </DialogContent>
               </Dialog>
             </nav>
+
+            {/* Mobile Hamburger Menu */}
+            <div className="md:hidden">
+              <Drawer open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <DrawerTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-slate-600">
+                    <Menu className="w-6 h-6" />
+                  </Button>
+                </DrawerTrigger>
+                <DrawerContent>
+                  <DrawerHeader className="text-left">
+                    <DrawerTitle>Navigation</DrawerTitle>
+                    <DrawerClose asChild>
+                      <Button variant="ghost" size="icon" className="absolute right-4 top-4">
+                        <X className="w-5 h-5" />
+                      </Button>
+                    </DrawerClose>
+                  </DrawerHeader>
+                  <div className="px-4 pb-6 space-y-4">
+                    <a 
+                      href="#" 
+                      className="block py-3 text-lg text-slate-600 hover:text-blue-600 transition-colors duration-200"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Videos
+                    </a>
+                    <a 
+                      href="/calendar" 
+                      className="block py-3 text-lg text-slate-600 hover:text-blue-600 transition-colors duration-200"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Calendar
+                    </a>
+                    <div className="py-3">
+                      <APIKeyManager />
+                    </div>
+                    <div className="pt-2">
+                      <Dialog open={isAIChatOpen} onOpenChange={setIsAIChatOpen}>
+                        <DialogTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            className="w-full border-blue-200 text-blue-600 hover:bg-blue-50" 
+                            onClick={() => {
+                              handleAIChatClick();
+                              setIsMobileMenuOpen(false);
+                            }}
+                          >
+                            <MessageCircle className="w-4 h-4 mr-2" />
+                            AI Assistant
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl h-[80vh]">
+                          <DialogHeader>
+                            <DialogTitle>AI Video Assistant</DialogTitle>
+                          </DialogHeader>
+                          <AIChat preselectedEventIds={aiChatPreselectedEvents} />
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </div>
+                </DrawerContent>
+              </Drawer>
+            </div>
           </div>
         </div>
       </header>
