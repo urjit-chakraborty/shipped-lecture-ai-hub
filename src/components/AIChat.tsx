@@ -167,7 +167,7 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
   };
 
   // Filter events to only show those with transcripts
-  const eventsWithTranscripts = events.filter(event => event.transcript);
+  const eventsWithTranscripts = events.filter(event => event.transcription);
   const availableEvents = eventsWithTranscripts.filter(event => !selectedEventIds.includes(event.id));
   const selectedEvents = eventsWithTranscripts.filter(event => selectedEventIds.includes(event.id));
 

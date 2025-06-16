@@ -60,7 +60,7 @@ const Index = () => {
   const getEventStatus = (event: any) => {
     const eventDate = new Date(event.event_date);
     const hasVideo = !!event.youtube_url;
-    const hasTranscript = !!event.transcript; // Check if transcript exists
+    const hasTranscript = !!event.transcription; // Check if transcript exists
     if (isPast(eventDate) && hasVideo) {
       return {
         status: 'available',
@@ -214,7 +214,7 @@ const Index = () => {
           const eventStatus = getEventStatus(event);
           const localTime = formatLocalTime(event.event_date);
           const thumbnailUrl = event.youtube_url ? getYouTubeThumbnailUrl(event.youtube_url) : null;
-          const hasTranscript = !!event.transcript; // Check if transcript exists
+          const hasTranscript = !!event.transcription; // Check if transcript exists
           
           return <Card key={event.id} className="group hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm border-slate-200 hover:border-blue-200 overflow-hidden">
                   <div className="relative">
