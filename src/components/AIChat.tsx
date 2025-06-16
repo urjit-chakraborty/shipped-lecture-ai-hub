@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -80,9 +81,11 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
   }, [currentUsage]);
 
   useEffect(() => {
-    // Set preselected events
+    // Set preselected events and ensure they persist
+    console.log('Preselected event IDs:', preselectedEventIds);
     if (preselectedEventIds.length > 0) {
       setSelectedEventIds(preselectedEventIds);
+      console.log('Setting selected events:', preselectedEventIds);
     }
   }, [preselectedEventIds]);
 
@@ -150,6 +153,7 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
     setIsLoading(true);
 
     try {
+      console.log('Sending message with event IDs:', selectedEventIds);
       const { data, error } = await supabase.functions.invoke('ai-chat', {
         body: {
           message: userMessage.content,
@@ -207,12 +211,22 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
 
   const addEvent = (eventId: string) => {
     if (!selectedEventIds.includes(eventId)) {
-      setSelectedEventIds(prev => [...prev, eventId]);
+      console.log('Adding event:', eventId);
+      setSelectedEventIds(prev => {
+        const newIds = [...prev, eventId];
+        console.log('New selected event IDs:', newIds);
+        return newIds;
+      });
     }
   };
 
   const removeEvent = (eventId: string) => {
-    setSelectedEventIds(prev => prev.filter(id => id !== eventId));
+    console.log('Removing event:', eventId);
+    setSelectedEventIds(prev => {
+      const newIds = prev.filter(id => id !== eventId);
+      console.log('New selected event IDs after removal:', newIds);
+      return newIds;
+    });
   };
 
   // Filter events to only show those with transcripts
@@ -226,11 +240,6 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader className="pb-3 flex-shrink-0">
-        <CardTitle className="flex items-center gap-2">
-          <MessageCircle className="w-5 h-5" />
-          AI Video Assistant
-        </CardTitle>
-        
         {/* Chat persistence warning */}
         <Alert className="border-orange-200 bg-orange-50">
           <AlertTriangle className="h-4 w-4 text-orange-600" />
