@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isPast, isFuture } from "date-fns";
 import { AIChat } from "@/components/AIChat";
+import { AISummaryDialog } from "@/components/AISummaryDialog";
 import { useState } from "react";
 
 const Index = () => {
@@ -264,6 +265,15 @@ const Index = () => {
                         <MessageCircle className="w-4 h-4 mr-2" />
                         Ask AI about this video
                       </Button>
+
+                      {/* AI Summary Button - only show if AI summary exists */}
+                      {event.ai_summary && (
+                        <AISummaryDialog 
+                          eventTitle={event.title}
+                          aiSummary={event.ai_summary}
+                          eventType={event.event_type}
+                        />
+                      )}
                     </div>
                   </CardContent>
                 </Card>
