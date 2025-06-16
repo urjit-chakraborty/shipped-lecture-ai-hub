@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const useUsageTracking = (hasUserApiKeys: boolean) => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [usageCount, setUsageCount] = useState<number>(() => {
     if (!user) return 0;
     
@@ -30,7 +30,7 @@ export const useUsageTracking = (hasUserApiKeys: boolean) => {
   const { data: currentUsage, refetch } = useQuery({
     queryKey: ['ai-chat-usage', user?.id],
     queryFn: async () => {
-      if (hasUserApiKeys || !user) return null;
+      if (hasUserApiKeys || !user || !session) return null;
       
       console.log('useUsageTracking - Fetching usage count for user:', user.id);
       
@@ -41,6 +41,9 @@ export const useUsageTracking = (hasUserApiKeys: boolean) => {
             message: '__CHECK_USAGE__',
             eventIds: undefined,
             userApiKeys: {},
+          },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
           },
         });
         
@@ -56,7 +59,7 @@ export const useUsageTracking = (hasUserApiKeys: boolean) => {
         return usageCount; // Return current count instead of 0 on error
       }
     },
-    enabled: !hasUserApiKeys && !!user,
+    enabled: !hasUserApiKeys && !!user && !!session,
     refetchOnWindowFocus: true, // Enable refetch on window focus
     staleTime: 0, // Always fetch fresh data
     gcTime: 0, // Don't cache the data
@@ -84,7 +87,7 @@ export const useUsageTracking = (hasUserApiKeys: boolean) => {
         localStorage.setItem('ai_chat_usage_date', new Date().toISOString().split('T')[0]);
         localStorage.setItem('ai_chat_usage_count', '0');
         // Refetch for the new user
-        if (!hasUserApiKeys) {
+        if (!hasUserApiKeys && session) {
           refetch();
         }
       }
@@ -95,7 +98,7 @@ export const useUsageTracking = (hasUserApiKeys: boolean) => {
       localStorage.removeItem('ai_chat_usage_date');
       localStorage.removeItem('ai_chat_usage_count');
     }
-  }, [user, hasUserApiKeys, refetch]);
+  }, [user, hasUserApiKeys, refetch, session]);
 
   const updateUsageCount = async (newCount: number | ((prev: number) => number)) => {
     if (!user) return;
@@ -110,7 +113,7 @@ export const useUsageTracking = (hasUserApiKeys: boolean) => {
     localStorage.setItem('ai_chat_user_id', user.id);
     
     // Force refetch to sync with backend
-    if (!hasUserApiKeys) {
+    if (!hasUserApiKeys && session) {
       console.log('useUsageTracking - Refetching usage count from server...');
       // Immediate refetch
       refetch();

@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Menu, X, MessageCircle, Calendar, Rocket, LogIn, LogOut, User } from "lucide-react";
+import { Menu, X, MessageCircle, Calendar, Rocket, LogIn, LogOut, User, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerClose } from "@/components/ui/drawer";
@@ -92,6 +92,12 @@ export const Header = ({
                   <User className="w-4 h-4" />
                   <span>{user.email}</span>
                 </div>
+                <Button asChild variant="ghost" size="sm" className="text-slate-600 hover:text-blue-600">
+                  <a href="/settings">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
+                  </a>
+                </Button>
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -184,6 +190,17 @@ export const Header = ({
                         <User className="w-4 h-4" />
                         <span>{user.email}</span>
                       </div>
+                      <Button 
+                        asChild
+                        variant="ghost" 
+                        className="w-full justify-start text-slate-600 hover:text-blue-600"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <a href="/settings">
+                          <Settings className="w-4 h-4 mr-2" />
+                          Settings
+                        </a>
+                      </Button>
                       <Button 
                         variant="ghost" 
                         className="w-full justify-start text-slate-600 hover:text-blue-600"

@@ -14,7 +14,7 @@ interface Message {
 const DAILY_CREDIT_LIMIT = 5;
 
 export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,13 +28,13 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
     if (!input.trim() || isLoading) return;
 
     // Check if user is authenticated
-    if (!user) {
+    if (!user || !session) {
       toast.error('Please sign in to use the AI assistant.', {
         duration: 5000,
         action: {
           label: 'Sign In',
           onClick: () => {
-            window.location.href = '/login';
+            window.location.href = '/auth';
           }
         }
       });
@@ -70,6 +70,11 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
     try {
       console.log('useAIChat - Sending message with event IDs:', selectedEventIds);
       
+      // Ensure we have a valid session with access token
+      if (!session.access_token) {
+        throw new Error('No valid session token available');
+      }
+      
       const { data, error } = await supabase.functions.invoke('ai-chat', {
         body: {
           message: userMessage.content,
@@ -79,6 +84,9 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
             anthropic: userAnthropicKey,
             gemini: userGeminiKey,
           },
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
         },
       });
 
@@ -95,7 +103,7 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
             action: {
               label: 'Sign In',
               onClick: () => {
-                window.location.href = '/login';
+                window.location.href = '/auth';
               }
             }
           });
@@ -159,7 +167,7 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
           action: {
             label: 'Sign In',
             onClick: () => {
-              window.location.href = '/login';
+              window.location.href = '/auth';
             }
           }
         });
