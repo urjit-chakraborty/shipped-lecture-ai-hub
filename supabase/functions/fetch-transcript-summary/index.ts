@@ -31,7 +31,7 @@ serve(async (req) => {
       throw new Error('Invalid YouTube URL');
     }
 
-    // Fetch transcript using YouTube Transcript API (via third-party service)
+    // Fetch transcript using YouTube Transcript API
     const transcript = await fetchYouTubeTranscript(videoId);
     
     // Generate AI summary
@@ -89,30 +89,45 @@ function extractVideoId(url: string): string | null {
 
 async function fetchYouTubeTranscript(videoId: string): Promise<string> {
   try {
-    // Using a free transcript API service
-    const response = await fetch(`https://youtube-transcript-api.p.rapidapi.com/transcript?video_id=${videoId}`, {
+    const apiToken = Deno.env.get('YOUTUBE_TRANSCRIPT_API_TOKEN');
+    if (!apiToken) {
+      throw new Error('YouTube Transcript API token not configured');
+    }
+
+    // Using the new YouTube Transcript API
+    const response = await fetch('https://www.youtube-transcript.io/api/transcripts', {
+      method: 'POST',
       headers: {
-        'X-RapidAPI-Key': Deno.env.get('RAPIDAPI_KEY') || '',
-        'X-RapidAPI-Host': 'youtube-transcript-api.p.rapidapi.com'
-      }
+        'Authorization': `Basic ${apiToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        ids: [videoId],
+        countryCode: 'us'
+      })
     });
 
     if (!response.ok) {
-      // Fallback: Try alternative method or return placeholder
-      console.log('Primary transcript API failed, using fallback');
-      return `[Transcript for video ${videoId} - Manual transcription required]`;
+      const errorText = await response.text();
+      console.error('YouTube Transcript API error:', response.status, errorText);
+      throw new Error(`YouTube Transcript API error: ${response.status}`);
     }
 
     const data = await response.json();
-    if (data && data.transcript) {
-      return data.transcript.map((item: any) => item.text).join(' ');
+    console.log('YouTube Transcript API response:', data);
+    
+    // The API returns an object with video IDs as keys
+    if (data && data[videoId] && data[videoId].transcript) {
+      // Join all transcript segments into a single string
+      const transcriptSegments = data[videoId].transcript;
+      return transcriptSegments.map((segment: any) => segment.text).join(' ');
     }
     
-    throw new Error('No transcript found');
+    throw new Error('No transcript found in API response');
   } catch (error) {
     console.error('Error fetching transcript:', error);
     // Return a placeholder that indicates manual transcription is needed
-    return `[Transcript unavailable for video ${videoId} - Please add manually]`;
+    return `[Transcript unavailable for video ${videoId} - Please add manually. Error: ${error.message}]`;
   }
 }
 
