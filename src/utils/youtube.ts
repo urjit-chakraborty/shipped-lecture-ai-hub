@@ -12,5 +12,5 @@ export const getYouTubeThumbnailUrl = (url: string): string | null => {
   const videoId = getYouTubeVideoId(url);
   if (!videoId) return null;
   
-  return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+  return `https://img.youtube.com/vi/${videoId}/sddefault.jpg`;
 };

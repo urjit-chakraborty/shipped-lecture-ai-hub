@@ -209,11 +209,11 @@ const Index = () => {
                 <Card key={event.id} className="group hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm border-slate-200 hover:border-blue-200 overflow-hidden">
                   <div className="relative">
                     {thumbnailUrl ? (
-                      <div className="w-full h-48 relative overflow-hidden">
+                      <div className="w-full h-48 relative overflow-hidden bg-black">
                         <img 
                           src={thumbnailUrl} 
                           alt={event.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                           onError={(e) => {
                             // Fallback to gradient background if thumbnail fails to load
                             (e.target as HTMLImageElement).style.display = 'none';
