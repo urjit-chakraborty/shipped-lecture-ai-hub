@@ -36,6 +36,15 @@ const Index = () => {
     }
   };
 
+  const formatLocalTime = (utcDate: string) => {
+    const date = new Date(utcDate);
+    return {
+      date: format(date, 'MMM dd'),
+      time: format(date, 'h:mm a'),
+      year: format(date, 'yyyy')
+    };
+  };
+
   const getEventStatus = (event: any) => {
     const eventDate = new Date(event.event_date);
     const hasVideo = !!event.youtube_url;
@@ -70,7 +79,7 @@ const Index = () => {
               <a href="#" className="text-slate-600 hover:text-blue-600 transition-colors duration-200">
                 Videos
               </a>
-              <a href="#" className="text-slate-600 hover:text-blue-600 transition-colors duration-200">
+              <a href="/calendar" className="text-slate-600 hover:text-blue-600 transition-colors duration-200">
                 Calendar
               </a>
               <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50">
@@ -125,7 +134,7 @@ const Index = () => {
         <div className="flex items-center justify-between mb-8">
           <h3 className="text-2xl font-bold text-slate-900">Featured Events</h3>
           <Button variant="ghost" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-            View All
+            <a href="/calendar">View Calendar</a>
           </Button>
         </div>
 
@@ -149,7 +158,7 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {events.map((event) => {
               const eventStatus = getEventStatus(event);
-              const eventDate = new Date(event.event_date);
+              const localTime = formatLocalTime(event.event_date);
               
               return (
                 <Card key={event.id} className="group hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm border-slate-200 hover:border-blue-200 overflow-hidden">
@@ -165,7 +174,7 @@ const Index = () => {
                     </div>
                     <div className="absolute bottom-3 left-3 flex items-center space-x-2 text-blue-700 text-sm font-medium">
                       <Calendar className="w-4 h-4" />
-                      <span>{format(eventDate, 'MMM dd')}</span>
+                      <span>{localTime.date}</span>
                     </div>
                   </div>
                   
@@ -182,9 +191,9 @@ const Index = () => {
                     <div className="flex items-center justify-between text-sm text-slate-500 mb-4">
                       <div className="flex items-center space-x-1">
                         <Clock className="w-4 h-4" />
-                        <span>{format(eventDate, 'HH:mm')}</span>
+                        <span>{localTime.time}</span>
                       </div>
-                      <span>{format(eventDate, 'yyyy')}</span>
+                      <span>{localTime.year}</span>
                     </div>
                     
                     {eventStatus.status === 'available' ? (
