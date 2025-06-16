@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Calendar, Clock, Edit, Trash2, Plus } from 'lucide-react';
+import { Calendar, Clock, Edit, Trash2, Plus, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -18,6 +18,7 @@ interface Event {
   event_type: string;
   youtube_url?: string;
   description?: string;
+  transcription?: string;
   event_date: string;
   created_at: string;
   updated_at: string;
@@ -33,6 +34,7 @@ export const EventManagement = () => {
     event_type: 'Lecture',
     youtube_url: '',
     description: '',
+    transcription: '',
     event_date: '',
   });
 
@@ -65,6 +67,7 @@ export const EventManagement = () => {
       event_type: 'Lecture',
       youtube_url: '',
       description: '',
+      transcription: '',
       event_date: '',
     });
     setEditingEvent(null);
@@ -112,6 +115,7 @@ export const EventManagement = () => {
       event_type: event.event_type,
       youtube_url: event.youtube_url || '',
       description: event.description || '',
+      transcription: event.transcription || '',
       event_date: format(new Date(event.event_date), "yyyy-MM-dd'T'HH:mm"),
     });
     setIsDialogOpen(true);
@@ -150,7 +154,7 @@ export const EventManagement = () => {
               Add Event
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingEvent ? 'Edit Event' : 'Create New Event'}
@@ -201,6 +205,16 @@ export const EventManagement = () => {
                 />
               </div>
               <div>
+                <Label htmlFor="transcription">Video Transcription (Optional)</Label>
+                <Textarea
+                  id="transcription"
+                  value={formData.transcription}
+                  onChange={(e) => setFormData({ ...formData, transcription: e.target.value })}
+                  rows={6}
+                  placeholder="Paste the video transcript here to enable AI-powered Q&A for this video..."
+                />
+              </div>
+              <div>
                 <Label htmlFor="event_date">Event Date & Time</Label>
                 <Input
                   id="event_date"
@@ -243,6 +257,7 @@ export const EventManagement = () => {
                   <TableHead>Title</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead>Transcript</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -257,6 +272,14 @@ export const EventManagement = () => {
                         {format(new Date(event.event_date), 'MMM dd, yyyy')}
                         <Clock className="h-4 w-4 ml-2" />
                         {format(new Date(event.event_date), 'HH:mm')}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <MessageCircle className="h-4 w-4" />
+                        <span className={event.transcription ? 'text-green-600' : 'text-gray-400'}>
+                          {event.transcription ? 'Available' : 'Not set'}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>

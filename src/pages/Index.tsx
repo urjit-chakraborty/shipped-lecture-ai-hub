@@ -1,13 +1,18 @@
-
-import { Play, Calendar, Clock, Users } from "lucide-react";
+import { Play, Calendar, Clock, Users, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isPast, isFuture } from "date-fns";
+import { AIChat } from "@/components/AIChat";
+import { useState } from "react";
 
 const Index = () => {
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
+
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['events'],
     queryFn: async () => {
@@ -58,6 +63,18 @@ const Index = () => {
     }
   };
 
+  const handleEventClick = (event: any) => {
+    const eventStatus = getEventStatus(event);
+    if (eventStatus.status === 'available') {
+      window.open(event.youtube_url, '_blank');
+    }
+  };
+
+  const handleAIChatClick = (event: any) => {
+    setSelectedEvent(event);
+    setIsAIChatOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Header */}
@@ -82,9 +99,23 @@ const Index = () => {
               <a href="/calendar" className="text-slate-600 hover:text-blue-600 transition-colors duration-200">
                 Calendar
               </a>
-              <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50">
-                Settings
-              </Button>
+              <Dialog open={isAIChatOpen} onOpenChange={setIsAIChatOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50">
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    AI Assistant
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl h-[80vh]">
+                  <DialogHeader>
+                    <DialogTitle>AI Video Assistant</DialogTitle>
+                  </DialogHeader>
+                  <AIChat 
+                    eventId={selectedEvent?.id} 
+                    eventTitle={selectedEvent?.title}
+                  />
+                </DialogContent>
+              </Dialog>
             </nav>
           </div>
         </div>
@@ -196,25 +227,37 @@ const Index = () => {
                       <span>{localTime.year}</span>
                     </div>
                     
-                    {eventStatus.status === 'available' ? (
+                    <div className="space-y-2">
+                      {eventStatus.status === 'available' ? (
+                        <Button 
+                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                          onClick={() => handleEventClick(event)}
+                        >
+                          <Play className="w-4 h-4 mr-2" />
+                          {eventStatus.text}
+                        </Button>
+                      ) : eventStatus.status === 'processing' ? (
+                        <Button variant="outline" className="w-full" disabled>
+                          <Clock className="w-4 h-4 mr-2" />
+                          {eventStatus.text}
+                        </Button>
+                      ) : (
+                        <Button variant="outline" className="w-full">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          {eventStatus.text}
+                        </Button>
+                      )}
+                      
                       <Button 
-                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
-                        onClick={() => window.open(event.youtube_url, '_blank')}
+                        variant="ghost" 
+                        size="sm" 
+                        className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        onClick={() => handleAIChatClick(event)}
                       >
-                        <Play className="w-4 h-4 mr-2" />
-                        {eventStatus.text}
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        Ask AI about this video
                       </Button>
-                    ) : eventStatus.status === 'processing' ? (
-                      <Button variant="outline" className="w-full" disabled>
-                        <Clock className="w-4 h-4 mr-2" />
-                        {eventStatus.text}
-                      </Button>
-                    ) : (
-                      <Button variant="outline" className="w-full">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        {eventStatus.text}
-                      </Button>
-                    )}
+                    </div>
                   </CardContent>
                 </Card>
               );
