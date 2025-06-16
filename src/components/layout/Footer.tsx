@@ -1,4 +1,3 @@
-
 import { Rocket, Play, Calendar, MessageCircle, Coffee, Github, Twitter } from "lucide-react";
 
 export const Footer = () => {
@@ -17,10 +16,10 @@ export const Footer = () => {
               Watch developers ship web applications at lightning speed with Lovable. Learn the strategies and techniques that turn ideas into deployed products.
             </p>
             <div className="flex items-center space-x-4">
-              <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition-colors">
+              <a href="https://github.com/urjit-chakraborty/shipped-lecture-ai-hub" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition-colors">
                 <Github className="w-5 h-5" />
               </a>
-              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition-colors">
+              <a href="https://x.com/urjiitt" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition-colors">
                 <Twitter className="w-5 h-5" />
               </a>
             </div>
@@ -49,7 +48,7 @@ export const Footer = () => {
           <div>
             <h4 className="text-white font-semibold mb-4">Support</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="https://coff.ee/urjitc" target="_blank" rel="noopener noreferrer" className="hover:text-amber-400 transition-colors flex items-center"><Coffee className="w-4 h-4 mr-2" />Buy Me a Coffee</a></li>
+              <li><a href="https://coff.ee/urjitc" target="_blank" rel="noopener noreferrer" className="hover:text-amber-400 transition-colors flex items-center"><Coffee className="w-4 h-4 mr-2" />Support me to keep this site running for free</a></li>
               <li><a href="https://discord.com/channels/1119885301872070706/1280461670979993613" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition-colors">Discord Community</a></li>
               <li><a href="#" className="hover:text-blue-400 transition-colors">Contact</a></li>
               <li><a href="#" className="hover:text-blue-400 transition-colors">FAQ</a></li>
