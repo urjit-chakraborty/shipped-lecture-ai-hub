@@ -1,4 +1,4 @@
-import { Rocket, Play, Calendar, MessageCircle, Coffee, Github, Twitter } from "lucide-react";
+import { Rocket, Play, Calendar, MessageCircle, Coffee, Github, Twitter, Star } from "lucide-react";
 
 export const Footer = () => {
   return (
@@ -49,6 +49,7 @@ export const Footer = () => {
             <h4 className="text-white font-semibold mb-4">Support</h4>
             <ul className="space-y-2 text-sm">
               <li><a href="https://coff.ee/urjitc" target="_blank" rel="noopener noreferrer" className="hover:text-amber-400 transition-colors flex items-center"><Coffee className="w-4 h-4 mr-2" />Support me to keep this site running for free</a></li>
+              <li><a href="https://github.com/urjit-chakraborty/shipped-lecture-ai-hub" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-400 transition-colors flex items-center"><Star className="w-4 h-4 mr-2" />Star/Contribute to GitHub</a></li>
               <li><a href="https://discord.com/channels/1119885301872070706/1280461670979993613" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition-colors">Discord Community</a></li>
               <li><a href="#" className="hover:text-blue-400 transition-colors">Contact</a></li>
               <li><a href="#" className="hover:text-blue-400 transition-colors">FAQ</a></li>
