@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerClose } from "@/components/ui/drawer";
 import { AIChat } from "@/components/AIChat";
 import { APIKeyManager } from "@/components/APIKeyManager";
+import { smoothScrollToSection } from "@/utils/smoothScroll";
 
 interface HeaderProps {
   isAIChatOpen: boolean;
@@ -21,6 +22,11 @@ export const Header = ({
   handleAIChatClick 
 }: HeaderProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleVideosClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    smoothScrollToSection('featured-videos');
+  };
 
   return (
     <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-50">
@@ -40,7 +46,11 @@ export const Header = ({
           
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <a href="#" className="text-slate-600 hover:text-blue-600 transition-colors duration-200">
+            <a 
+              href="#" 
+              className="text-slate-600 hover:text-blue-600 transition-colors duration-200"
+              onClick={handleVideosClick}
+            >
               Videos
             </a>
             <a href="/calendar" className="text-slate-600 hover:text-blue-600 transition-colors duration-200">
@@ -84,7 +94,10 @@ export const Header = ({
                   <a 
                     href="#" 
                     className="block py-3 text-lg text-slate-600 hover:text-blue-600 transition-colors duration-200"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={(e) => {
+                      handleVideosClick(e);
+                      setIsMobileMenuOpen(false);
+                    }}
                   >
                     Videos
                   </a>
