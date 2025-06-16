@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const DAILY_MESSAGE_LIMIT = 5;
@@ -13,12 +12,18 @@ export async function checkRateLimit(req: Request, hasUserApiKeys: boolean, mess
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  // Get client IP and handle multiple IPs in forwarded header
+  // Get client IP with improved detection
   const forwardedFor = req.headers.get('x-forwarded-for');
   const realIp = req.headers.get('x-real-ip');
+  const cfConnectingIp = req.headers.get('cf-connecting-ip');
+  const trueClientIp = req.headers.get('true-client-ip');
   
   let clientIP = '127.0.0.1';
-  if (forwardedFor) {
+  if (cfConnectingIp) {
+    clientIP = cfConnectingIp.trim();
+  } else if (trueClientIp) {
+    clientIP = trueClientIp.trim();
+  } else if (forwardedFor) {
     // Take the first IP from the comma-separated list
     clientIP = forwardedFor.split(',')[0].trim();
   } else if (realIp) {
@@ -27,29 +32,45 @@ export async function checkRateLimit(req: Request, hasUserApiKeys: boolean, mess
 
   console.log('Client IP determined as:', clientIP);
 
-  // Check current usage for this IP
-  const { data: usageData, error: usageError } = await supabase
-    .from('ai_chat_usage')
-    .select('message_count')
-    .eq('ip_address', clientIP)
-    .eq('last_reset_date', new Date().toISOString().split('T')[0])
-    .single();
+  // Get current date in UTC
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
 
-  if (usageError && usageError.code !== 'PGRST116') {
-    console.error('Error checking usage:', usageError);
+  // For usage check, just return the current count without incrementing
+  if (message === '__CHECK_USAGE__') {
+    const { data: usageData, error: usageError } = await supabase
+      .from('ai_chat_usage')
+      .select('message_count')
+      .eq('ip_address', clientIP)
+      .eq('last_reset_date', today)
+      .single();
+
+    if (usageError && usageError.code !== 'PGRST116') {
+      console.error('Error checking usage:', usageError);
+      throw new Error('Failed to check usage limits');
+    }
+
+    const currentCount = usageData?.message_count || 0;
+    console.log('Usage check - Current count for IP:', clientIP, '=', currentCount);
+    return { allowed: currentCount < DAILY_MESSAGE_LIMIT, currentCount };
+  }
+
+  // For actual messages, use the atomic increment function
+  const { data: usageData, error: usageError } = await supabase.rpc('increment_message_count', {
+    p_ip_address: clientIP,
+    p_date: today,
+    p_limit: DAILY_MESSAGE_LIMIT
+  });
+
+  if (usageError) {
+    console.error('Error updating usage:', usageError);
     throw new Error('Failed to check usage limits');
   }
 
   const currentCount = usageData?.message_count || 0;
-  console.log('Current usage count for IP:', clientIP, '=', currentCount);
+  console.log('Message request - Current count for IP:', clientIP, '=', currentCount);
 
-  // If this is just a usage check, return current count without incrementing
-  if (message === '__CHECK_USAGE__') {
-    console.log('Usage check request - returning current count:', currentCount);
-    return { allowed: currentCount < DAILY_MESSAGE_LIMIT, currentCount };
-  }
-
-  if (currentCount >= DAILY_MESSAGE_LIMIT) {
+  if (currentCount > DAILY_MESSAGE_LIMIT) {
     console.log('Rate limit exceeded for IP:', clientIP, 'Count:', currentCount);
     return { 
       allowed: false, 
@@ -58,24 +79,5 @@ export async function checkRateLimit(req: Request, hasUserApiKeys: boolean, mess
     };
   }
 
-  // Increment usage count only for actual messages
-  const newCount = currentCount + 1;
-  console.log('Incrementing usage count from', currentCount, 'to', newCount);
-  
-  const { error: updateError } = await supabase
-    .from('ai_chat_usage')
-    .upsert({
-      ip_address: clientIP,
-      message_count: newCount,
-      last_reset_date: new Date().toISOString().split('T')[0],
-    }, {
-      onConflict: 'ip_address,last_reset_date'
-    });
-
-  if (updateError) {
-    console.error('Error updating usage:', updateError);
-    // Don't fail the request, just log the error
-  }
-
-  return { allowed: true, currentCount: newCount };
+  return { allowed: true, currentCount };
 }

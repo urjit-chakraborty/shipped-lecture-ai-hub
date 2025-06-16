@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,7 +12,7 @@ export const useEventSelection = (preselectedEventIds: string[] = []) => {
       const { data, error } = await supabase
         .from('events')
         .select('*')
-        .order('event_date', { ascending: false });
+        .order('event_date', { ascending: true });
       
       if (error) throw error;
       console.log('All events loaded:', data?.map(e => ({ id: e.id, title: e.title, hasTranscript: !!e.transcription })));
