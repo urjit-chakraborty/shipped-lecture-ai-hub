@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { AIChatHeader } from './AIChatHeader';
@@ -32,8 +33,8 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
     events,
   } = useEventSelection(preselectedEventIds);
 
-  // Usage tracking hook
-  const { usageCount, setUsageCount } = useUsageTracking(hasUserApiKeys);
+  // Usage tracking hook with IP-based checking
+  const { usageCount, setUsageCount, refetchUsage } = useUsageTracking(hasUserApiKeys);
 
   // Chat functionality hook
   const {
@@ -64,7 +65,7 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
   const isAtLimit = usageCount >= DAILY_MESSAGE_LIMIT;
 
   const handleSendMessage = () => {
-    sendMessage(usageCount, setUsageCount);
+    sendMessage(usageCount, setUsageCount, refetchUsage);
   };
 
   const handleInputKeyPress = (e: React.KeyboardEvent) => {

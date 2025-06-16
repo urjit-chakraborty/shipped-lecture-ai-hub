@@ -22,7 +22,7 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
   const userAnthropicKey = localStorage.getItem('user_anthropic_api_key');
   const userGeminiKey = localStorage.getItem('user_gemini_api_key');
 
-  const sendMessage = async (usageCount: number, setUsageCount: (value: number | ((prev: number) => number)) => void) => {
+  const sendMessage = async (usageCount: number, setUsageCount: (value: number | ((prev: number) => number)) => void, refetchUsage?: () => void) => {
     if (!input.trim() || isLoading) return;
 
     if (!hasUserApiKeys && usageCount >= DAILY_MESSAGE_LIMIT) {
@@ -31,7 +31,6 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
         action: {
           label: 'Add API Keys',
           onClick: () => {
-            // The API key button is in the header, so we'll just show a helpful message
             toast.info('Click the "API Keys" button in the header to add your own keys.');
           }
         }
@@ -85,8 +84,16 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
 
       setMessages(prev => [...prev, assistantMessage]);
 
+      // If using server-side rate limiting, refetch usage to get accurate count
       if (!hasUserApiKeys) {
+        // Optimistically increment first
         setUsageCount(prev => prev + 1);
+        // Then refetch to get the accurate server count
+        if (refetchUsage) {
+          setTimeout(() => {
+            refetchUsage();
+          }, 200);
+        }
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -94,8 +101,11 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
       let errorMessage = 'Sorry, I encountered an error. Please try again.';
       
       if (error.message?.includes('Daily message limit') || error.status === 429) {
-        // Force update usage count to limit when rate limit is hit
+        // Rate limit hit - update usage count to limit and refetch to sync
         setUsageCount(DAILY_MESSAGE_LIMIT);
+        if (refetchUsage) {
+          refetchUsage();
+        }
         toast.error(`Daily message limit of ${DAILY_MESSAGE_LIMIT} reached! Add your own API keys to continue chatting without limits.`, {
           duration: 6000,
           action: {
