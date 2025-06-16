@@ -26,7 +26,16 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
     if (!input.trim() || isLoading) return;
 
     if (!hasUserApiKeys && usageCount >= DAILY_MESSAGE_LIMIT) {
-      toast.error('Daily message limit reached. Please add your API keys to continue.');
+      toast.error(`Daily message limit of ${DAILY_MESSAGE_LIMIT} reached! Add your own API keys to continue chatting without limits.`, {
+        duration: 5000,
+        action: {
+          label: 'Add API Keys',
+          onClick: () => {
+            // The API key button is in the header, so we'll just show a helpful message
+            toast.info('Click the "API Keys" button in the header to add your own keys.');
+          }
+        }
+      });
       return;
     }
 
@@ -84,12 +93,28 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
       
       let errorMessage = 'Sorry, I encountered an error. Please try again.';
       
-      if (error.message?.includes('Daily message limit')) {
-        toast.error('Daily message limit reached. Please add your API keys to continue.');
+      if (error.message?.includes('Daily message limit') || error.status === 429) {
+        toast.error(`Daily message limit of ${DAILY_MESSAGE_LIMIT} reached! Add your own API keys to continue chatting without limits.`, {
+          duration: 6000,
+          action: {
+            label: 'Add API Keys',
+            onClick: () => {
+              toast.info('Click the "API Keys" button in the header to add your own keys.');
+            }
+          }
+        });
         setUsageCount(DAILY_MESSAGE_LIMIT);
         errorMessage = 'Daily message limit reached. Please add your own API keys to continue using the AI assistant.';
       } else if (error.message?.includes('No AI API keys')) {
-        toast.error('AI service is temporarily unavailable. Please add your own API keys.');
+        toast.error('AI service is temporarily unavailable. Please add your own API keys.', {
+          duration: 5000,
+          action: {
+            label: 'Add API Keys',
+            onClick: () => {
+              toast.info('Click the "API Keys" button in the header to add your own keys.');
+            }
+          }
+        });
         errorMessage = 'AI service is currently unavailable. Please add your own API keys to use the AI assistant.';
       } else if (error.message?.includes('API error') || error.message?.includes('temporarily unavailable')) {
         toast.error('AI service is temporarily unavailable. Please try again later.');

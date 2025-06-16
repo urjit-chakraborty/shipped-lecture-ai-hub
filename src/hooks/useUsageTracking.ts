@@ -7,7 +7,7 @@ export const useUsageTracking = (hasUserApiKeys: boolean) => {
   const [usageCount, setUsageCount] = useState<number>(0);
 
   // Fetch current usage count if no user API keys
-  const { data: currentUsage } = useQuery({
+  const { data: currentUsage, refetch } = useQuery({
     queryKey: ['ai-chat-usage'],
     queryFn: async () => {
       if (hasUserApiKeys) return null;
@@ -34,5 +34,13 @@ export const useUsageTracking = (hasUserApiKeys: boolean) => {
     }
   }, [currentUsage]);
 
-  return { usageCount, setUsageCount };
+  const updateUsageCount = (newCount: number) => {
+    setUsageCount(newCount);
+    // Refetch to ensure consistency
+    if (!hasUserApiKeys) {
+      refetch();
+    }
+  };
+
+  return { usageCount, setUsageCount: updateUsageCount };
 };
