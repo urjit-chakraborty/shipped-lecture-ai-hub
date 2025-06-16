@@ -1,4 +1,5 @@
-import { Play, Calendar, Clock, Users, MessageCircle, Rocket, Zap, Code } from "lucide-react";
+
+import { Play, Calendar, Clock, Users, MessageCircle, Rocket, Zap, Code, Coffee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -163,8 +164,8 @@ const Index = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3">
-              <Rocket className="w-5 h-5 mr-2" />
-              Start Shipping
+              <Play className="w-5 h-5 mr-2" />
+              See Videos
             </Button>
             <Button size="lg" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50 px-8 py-3">
               <Calendar className="w-5 h-5 mr-2" />
@@ -173,20 +174,21 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 text-center border border-slate-200">
-            <div className="text-3xl font-bold text-blue-600 mb-2">{events.length}+</div>
-            <div className="text-slate-600">Shipped Projects</div>
-          </div>
-          <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 text-center border border-slate-200">
-            <div className="text-3xl font-bold text-indigo-600 mb-2">Live</div>
-            <div className="text-slate-600">Building Sessions</div>
-          </div>
-          <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 text-center border border-slate-200">
-            <div className="text-3xl font-bold text-purple-600 mb-2">AI</div>
-            <div className="text-slate-600">Powered Assistance</div>
-          </div>
+        {/* Buy Me a Coffee */}
+        <div className="max-w-md mx-auto mb-12">
+          <Card className="bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 text-center">
+            <CardContent className="p-6">
+              <Coffee className="w-12 h-12 text-amber-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-amber-900 mb-2">Support the Creator</h3>
+              <p className="text-amber-700 mb-4">Enjoying the content? Buy me a coffee to keep the videos coming!</p>
+              <Button asChild className="bg-amber-500 hover:bg-amber-600 text-white">
+                <a href="https://coff.ee/urjitc" target="_blank" rel="noopener noreferrer">
+                  <Coffee className="w-4 h-4 mr-2" />
+                  Buy Me a Coffee
+                </a>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
