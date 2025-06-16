@@ -21,14 +21,24 @@ export async function getAIResponse(message: string, eventContext: string, userA
     const openaiKey = Deno.env.get('OPENAI_API_KEY');
     const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
     
+    console.log('Server-side API keys availability:', {
+      hasGemini: !!geminiKey,
+      hasOpenAI: !!openaiKey,
+      hasAnthropic: !!anthropicKey
+    });
+    
     if (geminiKey) {
+      console.log('Using server-side Gemini API key');
       return await callGemini(message, eventContext, geminiKey);
     } else if (openaiKey) {
+      console.log('Using server-side OpenAI API key');
       return await callOpenAI(message, eventContext, openaiKey);
     } else if (anthropicKey) {
+      console.log('Using server-side Anthropic API key');
       return await callAnthropic(message, eventContext, anthropicKey);
     } else {
-      throw new Error('No API keys available. Please provide your own API keys.');
+      console.error('No API keys available - neither user-provided nor server-side');
+      throw new Error('No AI API keys are currently available. Please add your own API keys to use the AI chat feature.');
     }
   }
 }

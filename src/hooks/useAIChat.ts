@@ -58,7 +58,14 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
+
+      if (!data || !data.response) {
+        throw new Error('No response received from AI service');
+      }
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -75,20 +82,29 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
     } catch (error) {
       console.error('Error sending message:', error);
       
+      let errorMessage = 'Sorry, I encountered an error. Please try again.';
+      
       if (error.message?.includes('Daily message limit')) {
         toast.error('Daily message limit reached. Please add your API keys to continue.');
         setUsageCount(DAILY_MESSAGE_LIMIT);
+        errorMessage = 'Daily message limit reached. Please add your own API keys to continue using the AI assistant.';
+      } else if (error.message?.includes('No AI API keys')) {
+        toast.error('AI service is temporarily unavailable. Please add your own API keys.');
+        errorMessage = 'AI service is currently unavailable. Please add your own API keys to use the AI assistant.';
+      } else if (error.message?.includes('API error') || error.message?.includes('temporarily unavailable')) {
+        toast.error('AI service is temporarily unavailable. Please try again later.');
+        errorMessage = 'AI service is temporarily unavailable. Please try again in a few moments.';
       } else {
         toast.error('Failed to send message. Please try again.');
       }
       
-      const errorMessage: Message = {
+      const errorResponseMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: errorMessage,
         role: 'assistant',
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorResponseMessage]);
     } finally {
       setIsLoading(false);
     }

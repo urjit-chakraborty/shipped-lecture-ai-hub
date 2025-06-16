@@ -24,29 +24,60 @@ serve(async (req) => {
     const hasUserApiKeys = !!(userApiKeys?.openai || userApiKeys?.anthropic || userApiKeys?.gemini);
     
     // Check rate limiting if no user API keys
-    const rateLimitResult = await checkRateLimit(req, hasUserApiKeys);
-    if (!rateLimitResult.allowed) {
-      return new Response(JSON.stringify({ 
-        error: rateLimitResult.error 
-      }), {
-        status: 429,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    let rateLimitResult;
+    try {
+      rateLimitResult = await checkRateLimit(req, hasUserApiKeys);
+      if (!rateLimitResult.allowed) {
+        console.log('Rate limit exceeded:', rateLimitResult.error);
+        return new Response(JSON.stringify({ 
+          error: rateLimitResult.error 
+        }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } catch (rateLimitError) {
+      console.error('Rate limiting check failed:', rateLimitError);
+      // Continue without rate limiting if the check fails
+      rateLimitResult = { allowed: true, currentCount: 0 };
     }
 
     // Get event context if eventIds are provided
-    const eventContext = await getEventContext(eventIds);
+    let eventContext = '';
+    try {
+      eventContext = await getEventContext(eventIds);
+    } catch (contextError) {
+      console.error('Error fetching event context:', contextError);
+      // Continue without event context if fetching fails
+      eventContext = '';
+    }
 
     // Get AI response
-    const response = await getAIResponse(message, eventContext, userApiKeys);
+    const response = await getAIResponse(message, eventContext, userApiKeys || {});
 
     return new Response(JSON.stringify({ response }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error in ai-chat function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    
+    // Provide more specific error messages
+    let errorMessage = 'An unexpected error occurred. Please try again.';
+    let statusCode = 500;
+    
+    if (error.message?.includes('No AI API keys')) {
+      errorMessage = error.message;
+      statusCode = 503; // Service Unavailable
+    } else if (error.message?.includes('Daily message limit')) {
+      errorMessage = error.message;
+      statusCode = 429; // Too Many Requests
+    } else if (error.message?.includes('API error')) {
+      errorMessage = 'AI service is temporarily unavailable. Please try again later.';
+      statusCode = 502; // Bad Gateway
+    }
+    
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: statusCode,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
