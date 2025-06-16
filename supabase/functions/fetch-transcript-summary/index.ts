@@ -116,11 +116,17 @@ async function fetchYouTubeTranscript(videoId: string): Promise<string> {
     const data = await response.json();
     console.log('YouTube Transcript API response:', data);
     
-    // The API returns an object with video IDs as keys
-    if (data && data[videoId] && data[videoId].transcript) {
-      // Join all transcript segments into a single string
-      const transcriptSegments = data[videoId].transcript;
-      return transcriptSegments.map((segment: any) => segment.text).join(' ');
+    // The API returns an array, get the first element which contains our video data
+    if (data && Array.isArray(data) && data.length > 0) {
+      const videoData = data.find(item => item.id === videoId) || data[0];
+      
+      // Check if we have tracks with transcript data
+      if (videoData.tracks && videoData.tracks.length > 0) {
+        const transcriptTrack = videoData.tracks.find(track => track.language === 'en') || videoData.tracks[0];
+        if (transcriptTrack && transcriptTrack.transcript) {
+          return transcriptTrack.transcript.map((segment: any) => segment.text).join(' ');
+        }
+      }
     }
     
     throw new Error('No transcript found in API response');
