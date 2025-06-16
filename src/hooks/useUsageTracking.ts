@@ -26,19 +26,28 @@ export const useUsageTracking = (hasUserApiKeys: boolean) => {
       return data?.message_count || 0;
     },
     enabled: !hasUserApiKeys,
+    refetchOnWindowFocus: false,
+    staleTime: 0, // Always fetch fresh data
+    cacheTime: 0, // Don't cache the data
   });
 
   useEffect(() => {
     if (currentUsage !== undefined && currentUsage !== null) {
+      console.log('Updating usage count from query:', currentUsage);
       setUsageCount(currentUsage);
     }
   }, [currentUsage]);
 
-  const updateUsageCount = (newCount: number) => {
-    setUsageCount(newCount);
-    // Refetch to ensure consistency
+  const updateUsageCount = async (newCount: number | ((prev: number) => number)) => {
+    const actualNewCount = typeof newCount === 'function' ? newCount(usageCount) : newCount;
+    console.log('Updating usage count to:', actualNewCount);
+    setUsageCount(actualNewCount);
+    
+    // Force refetch to sync with backend
     if (!hasUserApiKeys) {
-      refetch();
+      setTimeout(() => {
+        refetch();
+      }, 100);
     }
   };
 

@@ -94,6 +94,8 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
       let errorMessage = 'Sorry, I encountered an error. Please try again.';
       
       if (error.message?.includes('Daily message limit') || error.status === 429) {
+        // Force update usage count to limit when rate limit is hit
+        setUsageCount(DAILY_MESSAGE_LIMIT);
         toast.error(`Daily message limit of ${DAILY_MESSAGE_LIMIT} reached! Add your own API keys to continue chatting without limits.`, {
           duration: 6000,
           action: {
@@ -103,7 +105,6 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
             }
           }
         });
-        setUsageCount(DAILY_MESSAGE_LIMIT);
         errorMessage = 'Daily message limit reached. Please add your own API keys to continue using the AI assistant.';
       } else if (error.message?.includes('No AI API keys')) {
         toast.error('AI service is temporarily unavailable. Please add your own API keys.', {
