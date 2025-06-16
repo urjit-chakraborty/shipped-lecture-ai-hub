@@ -1,3 +1,4 @@
+
 import { Play, Calendar, Clock, Users, MessageCircle, Rocket, Zap, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,6 +69,13 @@ const Index = () => {
   const handleEventClick = (event: any) => {
     const eventStatus = getEventStatus(event);
     if (eventStatus.status === 'available') {
+      window.open(event.youtube_url, '_blank');
+    }
+  };
+
+  const handlePlayButtonClick = (event: any, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click event
+    if (event.youtube_url) {
       window.open(event.youtube_url, '_blank');
     }
   };
@@ -209,11 +217,11 @@ const Index = () => {
                 <Card key={event.id} className="group hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm border-slate-200 hover:border-blue-200 overflow-hidden">
                   <div className="relative">
                     {thumbnailUrl ? (
-                      <div className="w-full h-48 relative overflow-hidden bg-black">
+                      <div className="w-full h-48 relative overflow-hidden bg-black flex items-center justify-center">
                         <img 
                           src={thumbnailUrl} 
                           alt={event.title}
-                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                          className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
                           onError={(e) => {
                             // Fallback to gradient background if thumbnail fails to load
                             (e.target as HTMLImageElement).style.display = 'none';
@@ -225,11 +233,16 @@ const Index = () => {
                           <Play className="w-16 h-16 text-blue-600/50" />
                         </div>
                         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300" />
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <div className="bg-white/90 rounded-full p-3">
-                            <Play className="w-8 h-8 text-blue-600" />
+                        {event.youtube_url && (
+                          <div 
+                            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer"
+                            onClick={(e) => handlePlayButtonClick(event, e)}
+                          >
+                            <div className="bg-white/90 rounded-full p-3 hover:bg-white transition-colors duration-200">
+                              <Play className="w-8 h-8 text-blue-600" />
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     ) : (
                       <div className="w-full h-48 bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
