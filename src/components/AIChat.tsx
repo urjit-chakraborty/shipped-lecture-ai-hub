@@ -23,11 +23,14 @@ interface AIChatProps {
   preselectedEventIds?: string[];
 }
 
+const DAILY_MESSAGE_LIMIT = 10;
+
 export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedEventIds, setSelectedEventIds] = useState<string[]>(preselectedEventIds);
+  const [usageCount, setUsageCount] = useState<number>(0);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Check for user API keys
@@ -49,6 +52,34 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
     }
   });
 
+  // Fetch current usage count if no user API keys
+  const { data: currentUsage } = useQuery({
+    queryKey: ['ai-chat-usage'],
+    queryFn: async () => {
+      if (hasUserApiKeys) return null;
+      
+      const { data, error } = await supabase
+        .from('ai_chat_usage')
+        .select('message_count')
+        .eq('last_reset_date', new Date().toISOString().split('T')[0])
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching usage:', error);
+        return null;
+      }
+      
+      return data?.message_count || 0;
+    },
+    enabled: !hasUserApiKeys,
+  });
+
+  useEffect(() => {
+    if (currentUsage !== undefined && currentUsage !== null) {
+      setUsageCount(currentUsage);
+    }
+  }, [currentUsage]);
+
   useEffect(() => {
     // Set preselected events
     if (preselectedEventIds.length > 0) {
@@ -60,7 +91,12 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
     // Add welcome message
     const getWelcomeMessage = () => {
       if (!hasUserApiKeys) {
-        return `Hello! To use the AI assistant, please add your API keys using the "API Keys" button in the header. This allows you to ask questions about video content and get AI-powered assistance.`;
+        const remainingMessages = DAILY_MESSAGE_LIMIT - usageCount;
+        const usageText = remainingMessages > 0 
+          ? `You have ${remainingMessages} free messages remaining today.`
+          : 'You have reached your daily limit of free messages.';
+        
+        return `Hello! I'm here to help you with questions about video content and web development topics. ${usageText} To get unlimited access, please add your API keys using the "API Keys" button in the header.`;
       }
       
       if (selectedEventIds.length === 1) {
@@ -80,7 +116,7 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
       timestamp: new Date(),
     };
     setMessages([welcomeMessage]);
-  }, [selectedEventIds, events, hasUserApiKeys]);
+  }, [selectedEventIds, events, hasUserApiKeys, usageCount]);
 
   useEffect(() => {
     // Scroll to bottom when new messages are added
@@ -95,8 +131,8 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
-    if (!hasUserApiKeys) {
-      toast.error('Please add your API keys in the header to use the AI assistant');
+    if (!hasUserApiKeys && usageCount >= DAILY_MESSAGE_LIMIT) {
+      toast.error('Daily message limit reached. Please add your API keys to continue.');
       return;
     }
 
@@ -133,9 +169,20 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+
+      // Update usage count if no user API keys
+      if (!hasUserApiKeys) {
+        setUsageCount(prev => prev + 1);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message. Please try again.');
+      
+      if (error.message?.includes('Daily message limit')) {
+        toast.error('Daily message limit reached. Please add your API keys to continue.');
+        setUsageCount(DAILY_MESSAGE_LIMIT);
+      } else {
+        toast.error('Failed to send message. Please try again.');
+      }
       
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -171,6 +218,9 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
   const availableEvents = eventsWithTranscripts.filter(event => !selectedEventIds.includes(event.id));
   const selectedEvents = eventsWithTranscripts.filter(event => selectedEventIds.includes(event.id));
 
+  const remainingMessages = DAILY_MESSAGE_LIMIT - usageCount;
+  const isAtLimit = usageCount >= DAILY_MESSAGE_LIMIT;
+
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader className="pb-3">
@@ -183,13 +233,16 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Add your API keys using the "API Keys" button in the header to enable AI assistance.
+              {isAtLimit 
+                ? `Daily limit of ${DAILY_MESSAGE_LIMIT} messages reached. Add your API keys using the "API Keys" button in the header for unlimited access.`
+                : `Free usage: ${remainingMessages}/${DAILY_MESSAGE_LIMIT} messages remaining today. Add your API keys for unlimited access.`
+              }
             </AlertDescription>
           </Alert>
         )}
         
         {/* Video Selection */}
-        {hasUserApiKeys && (
+        {(hasUserApiKeys || !isAtLimit) && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Select onValueChange={addEvent}>
@@ -304,13 +357,19 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={hasUserApiKeys ? "Ask about the video content or web development..." : "Add API keys to enable AI chat..."}
-              disabled={isLoading || !hasUserApiKeys}
+              placeholder={
+                isAtLimit 
+                  ? "Add API keys to continue chatting..." 
+                  : hasUserApiKeys 
+                    ? "Ask about the video content or web development..." 
+                    : `Ask me anything (${remainingMessages} messages left)...`
+              }
+              disabled={isLoading || isAtLimit}
               className="flex-1"
             />
             <Button
               onClick={sendMessage}
-              disabled={!input.trim() || isLoading || !hasUserApiKeys}
+              disabled={!input.trim() || isLoading || isAtLimit}
               size="icon"
             >
               <Send className="w-4 h-4" />

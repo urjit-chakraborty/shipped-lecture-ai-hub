@@ -9,6 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_chat_usage: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: unknown
+          last_reset_date: string
+          message_count: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address: unknown
+          last_reset_date?: string
+          message_count?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          last_reset_date?: string
+          message_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           ai_summary: string | null

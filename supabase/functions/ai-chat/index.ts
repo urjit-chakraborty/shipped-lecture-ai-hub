@@ -8,6 +8,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const DAILY_MESSAGE_LIMIT = 10; // Messages per day for users without API keys
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -21,19 +23,69 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Check if user has provided their own API keys
+    const hasUserApiKeys = !!(userApiKeys?.openai || userApiKeys?.anthropic);
+    
+    // If no user API keys, check rate limiting
+    if (!hasUserApiKeys) {
+      const clientIP = req.headers.get('x-forwarded-for') || 
+                      req.headers.get('x-real-ip') || 
+                      '127.0.0.1';
+
+      // Check current usage for this IP
+      const { data: usageData, error: usageError } = await supabase
+        .from('ai_chat_usage')
+        .select('message_count')
+        .eq('ip_address', clientIP)
+        .eq('last_reset_date', new Date().toISOString().split('T')[0])
+        .single();
+
+      if (usageError && usageError.code !== 'PGRST116') {
+        console.error('Error checking usage:', usageError);
+        throw new Error('Failed to check usage limits');
+      }
+
+      const currentCount = usageData?.message_count || 0;
+
+      if (currentCount >= DAILY_MESSAGE_LIMIT) {
+        return new Response(JSON.stringify({ 
+          error: `Daily message limit of ${DAILY_MESSAGE_LIMIT} reached. Please add your own API keys to continue using the AI assistant.` 
+        }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Increment usage count
+      const { error: updateError } = await supabase
+        .from('ai_chat_usage')
+        .upsert({
+          ip_address: clientIP,
+          message_count: currentCount + 1,
+          last_reset_date: new Date().toISOString().split('T')[0],
+        }, {
+          onConflict: 'ip_address,last_reset_date'
+        });
+
+      if (updateError) {
+        console.error('Error updating usage:', updateError);
+        // Don't fail the request, just log the error
+      }
+    }
+
     // Get event context if eventIds are provided
     let eventContext = '';
     if (eventIds && eventIds.length > 0) {
       const { data: events } = await supabase
         .from('events')
-        .select('title, description, transcript, ai_summary')
+        .select('title, description, transcription, ai_summary')
         .in('id', eventIds);
 
       if (events && events.length > 0) {
         eventContext = events.map(event => {
           let context = `Event: ${event.title}\n`;
           if (event.description) context += `Description: ${event.description}\n`;
-          if (event.transcript) context += `Transcript: ${event.transcript}\n`;
+          if (event.transcription) context += `Transcript: ${event.transcription}\n`;
           if (event.ai_summary) context += `AI Summary: ${event.ai_summary}\n`;
           return context;
         }).join('\n---\n');
