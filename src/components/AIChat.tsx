@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MessageCircle, Send, Bot, User, Loader2, X, Plus } from 'lucide-react';
+import { MessageCircle, Send, Bot, User, Loader2, X, Plus, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
@@ -28,6 +29,11 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedEventIds, setSelectedEventIds] = useState<string[]>(preselectedEventIds);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Check for user API keys
+  const userOpenaiKey = localStorage.getItem('user_openai_api_key');
+  const userAnthropicKey = localStorage.getItem('user_anthropic_api_key');
+  const hasUserApiKeys = !!(userOpenaiKey || userAnthropicKey);
 
   // Fetch all events for selection
   const { data: events = [] } = useQuery({
@@ -53,6 +59,10 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
   useEffect(() => {
     // Add welcome message
     const getWelcomeMessage = () => {
+      if (!hasUserApiKeys) {
+        return `Hello! To use the AI assistant, please add your API keys using the "API Keys" button in the header. This allows you to ask questions about video content and get AI-powered assistance.`;
+      }
+      
       if (selectedEventIds.length === 1) {
         const selectedEvent = events.find(e => e.id === selectedEventIds[0]);
         return `Hello! I'm here to help you with questions about "${selectedEvent?.title}" and other web development topics. What would you like to know?`;
@@ -70,7 +80,7 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
       timestamp: new Date(),
     };
     setMessages([welcomeMessage]);
-  }, [selectedEventIds, events]);
+  }, [selectedEventIds, events, hasUserApiKeys]);
 
   useEffect(() => {
     // Scroll to bottom when new messages are added
@@ -84,6 +94,11 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
+
+    if (!hasUserApiKeys) {
+      toast.error('Please add your API keys in the header to use the AI assistant');
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -101,6 +116,10 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
         body: {
           message: userMessage.content,
           eventIds: selectedEventIds.length > 0 ? selectedEventIds : undefined,
+          userApiKeys: {
+            openai: userOpenaiKey,
+            anthropic: userAnthropicKey,
+          },
         },
       });
 
@@ -147,8 +166,10 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
     setSelectedEventIds(prev => prev.filter(id => id !== eventId));
   };
 
-  const availableEvents = events.filter(event => !selectedEventIds.includes(event.id));
-  const selectedEvents = events.filter(event => selectedEventIds.includes(event.id));
+  // Filter events to only show those with transcripts
+  const eventsWithTranscripts = events.filter(event => event.transcript);
+  const availableEvents = eventsWithTranscripts.filter(event => !selectedEventIds.includes(event.id));
+  const selectedEvents = eventsWithTranscripts.filter(event => selectedEventIds.includes(event.id));
 
   return (
     <Card className="h-[600px] flex flex-col">
@@ -158,42 +179,53 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
           AI Video Assistant
         </CardTitle>
         
+        {!hasUserApiKeys && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Add your API keys using the "API Keys" button in the header to enable AI assistance.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {/* Video Selection */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Select onValueChange={addEvent}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select videos for context (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableEvents.map((event) => (
-                  <SelectItem key={event.id} value={event.id}>
-                    {event.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {/* Selected Events */}
-          {selectedEvents.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {selectedEvents.map((event) => (
-                <Badge key={event.id} variant="secondary" className="flex items-center gap-1">
-                  {event.title}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                    onClick={() => removeEvent(event.id)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              ))}
+        {hasUserApiKeys && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Select onValueChange={addEvent}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select videos with transcripts for context (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableEvents.map((event) => (
+                    <SelectItem key={event.id} value={event.id}>
+                      {event.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          )}
-        </div>
+            
+            {/* Selected Events */}
+            {selectedEvents.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {selectedEvents.map((event) => (
+                  <Badge key={event.id} variant="secondary" className="flex items-center gap-1">
+                    {event.title}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={() => removeEvent(event.id)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </CardHeader>
       
       <CardContent className="flex-1 flex flex-col p-0">
@@ -272,13 +304,13 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask about the video content or web development..."
-              disabled={isLoading}
+              placeholder={hasUserApiKeys ? "Ask about the video content or web development..." : "Add API keys to enable AI chat..."}
+              disabled={isLoading || !hasUserApiKeys}
               className="flex-1"
             />
             <Button
               onClick={sendMessage}
-              disabled={!input.trim() || isLoading}
+              disabled={!input.trim() || isLoading || !hasUserApiKeys}
               size="icon"
             >
               <Send className="w-4 h-4" />
