@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,10 +5,12 @@ import { Header } from "@/components/layout/Header";
 import { Hero } from "@/components/layout/Hero";
 import { EventsGrid } from "@/components/layout/EventsGrid";
 import { Footer } from "@/components/layout/Footer";
+import { useVideoTracking } from "@/hooks/useVideoTracking";
 
 const Index = () => {
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [aiChatPreselectedEvents, setAiChatPreselectedEvents] = useState<string[]>([]);
+  const { trackAIChatOpen } = useVideoTracking();
 
   const {
     data: events = [],
@@ -32,9 +33,11 @@ const Index = () => {
     if (event) {
       // Pre-select specific event
       setAiChatPreselectedEvents([event.id]);
+      trackAIChatOpen(event.id, event.title);
     } else {
       // Open general AI chat
       setAiChatPreselectedEvents([]);
+      trackAIChatOpen();
     }
     setIsAIChatOpen(true);
   };

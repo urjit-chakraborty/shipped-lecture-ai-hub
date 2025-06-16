@@ -1,4 +1,3 @@
-
 import { Play, Calendar, Clock, Code, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { format, isPast } from "date-fns";
 import { getYouTubeThumbnailUrl } from "@/utils/youtube";
 import { AISummaryDialog } from "@/components/AISummaryDialog";
+import { useVideoTracking } from "@/hooks/useVideoTracking";
 
 interface Event {
   id: string;
@@ -25,6 +25,8 @@ interface EventsGridProps {
 }
 
 export const EventsGrid = ({ events, isLoading, handleAIChatClick }: EventsGridProps) => {
+  const { trackVideoPlay, trackAIChatOpen, trackEventCardClick } = useVideoTracking();
+
   const getCategoryColor = (category: string) => {
     switch (category) {
       case "Lecture":
@@ -72,7 +74,10 @@ export const EventsGrid = ({ events, isLoading, handleAIChatClick }: EventsGridP
 
   const handleEventClick = (event: Event) => {
     const eventStatus = getEventStatus(event);
+    trackEventCardClick(event.id, event.title, event.event_type);
+    
     if (eventStatus.status === 'available') {
+      trackVideoPlay(event.id, event.title, event.event_type);
       window.open(event.youtube_url, '_blank');
     }
   };
@@ -80,8 +85,14 @@ export const EventsGrid = ({ events, isLoading, handleAIChatClick }: EventsGridP
   const handlePlayButtonClick = (event: Event, e: React.MouseEvent) => {
     e.stopPropagation();
     if (event.youtube_url) {
+      trackVideoPlay(event.id, event.title, event.event_type);
       window.open(event.youtube_url, '_blank');
     }
+  };
+
+  const handleAIChatClickWithTracking = (event: Event) => {
+    trackAIChatOpen(event.id, event.title);
+    handleAIChatClick(event);
   };
 
   return (
@@ -197,7 +208,7 @@ export const EventsGrid = ({ events, isLoading, handleAIChatClick }: EventsGridP
                     )}
                     
                     {hasTranscript && (
-                      <Button variant="ghost" size="sm" className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleAIChatClick(event)}>
+                      <Button variant="ghost" size="sm" className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleAIChatClickWithTracking(event)}>
                         <MessageCircle className="w-4 h-4 mr-2" />
                         Ask AI about this video
                       </Button>
