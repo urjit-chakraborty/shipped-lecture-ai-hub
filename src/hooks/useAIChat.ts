@@ -20,6 +20,7 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
 
   const userOpenaiKey = localStorage.getItem('user_openai_api_key');
   const userAnthropicKey = localStorage.getItem('user_anthropic_api_key');
+  const userGeminiKey = localStorage.getItem('user_gemini_api_key');
 
   const sendMessage = async (usageCount: number, setUsageCount: (value: number | ((prev: number) => number)) => void) => {
     if (!input.trim() || isLoading) return;
@@ -52,6 +53,7 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
           userApiKeys: {
             openai: userOpenaiKey,
             anthropic: userAnthropicKey,
+            gemini: userGeminiKey,
           },
         },
       });

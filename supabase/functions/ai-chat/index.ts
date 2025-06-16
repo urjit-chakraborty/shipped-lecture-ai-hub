@@ -22,7 +22,7 @@ serve(async (req) => {
     console.log('Received request:', { 
       message: message?.substring(0, 100) + '...', 
       eventIds, 
-      hasUserApiKeys: !!(userApiKeys?.openai || userApiKeys?.anthropic) 
+      hasUserApiKeys: !!(userApiKeys?.openai || userApiKeys?.anthropic || userApiKeys?.gemini) 
     });
 
     // Initialize Supabase client with service role key for database access
@@ -31,7 +31,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Check if user has provided their own API keys
-    const hasUserApiKeys = !!(userApiKeys?.openai || userApiKeys?.anthropic);
+    const hasUserApiKeys = !!(userApiKeys?.openai || userApiKeys?.anthropic || userApiKeys?.gemini);
     
     // If no user API keys, check rate limiting
     if (!hasUserApiKeys) {
@@ -174,16 +174,21 @@ serve(async (req) => {
 
     // Determine which API to use based on available keys
     let response;
-    if (userApiKeys?.openai) {
+    if (userApiKeys?.gemini) {
+      response = await callGemini(message, eventContext, userApiKeys.gemini);
+    } else if (userApiKeys?.openai) {
       response = await callOpenAI(message, eventContext, userApiKeys.openai);
     } else if (userApiKeys?.anthropic) {
       response = await callAnthropic(message, eventContext, userApiKeys.anthropic);
     } else {
       // Fallback to server-side keys if available
+      const geminiKey = Deno.env.get('GEMINI_API_KEY');
       const openaiKey = Deno.env.get('OPENAI_API_KEY');
       const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
       
-      if (openaiKey) {
+      if (geminiKey) {
+        response = await callGemini(message, eventContext, geminiKey);
+      } else if (openaiKey) {
         response = await callOpenAI(message, eventContext, openaiKey);
       } else if (anthropicKey) {
         response = await callAnthropic(message, eventContext, anthropicKey);
@@ -284,4 +289,48 @@ Answer questions based on this video content when relevant, and provide general 
 
   const data = await response.json();
   return data.content[0].text;
+}
+
+async function callGemini(message: string, eventContext: string, apiKey: string) {
+  const systemMessage = eventContext
+    ? `You are an AI assistant for the Lovable Shipped Video Hub. Help users with questions about web development and the video content they've selected.
+
+IMPORTANT: You have been provided with specific video content below. Use this content to answer questions when relevant. Reference specific details from the transcripts when possible.
+
+VIDEO CONTENT:
+${eventContext}
+
+Answer questions based on this video content when relevant, and provide general web development guidance when needed. When referencing the videos, mention specific details from the transcripts to show you're using the actual content.`
+    : 'You are an AI assistant for the Lovable Shipped Video Hub. Help users with questions about web development, Lovable platform, and general programming topics.';
+
+  console.log('Calling Gemini with system message length:', systemMessage.length);
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [
+            { text: systemMessage + '\n\nUser: ' + message }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1000,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    console.error('Gemini API error:', error);
+    throw new Error(`Gemini API error: ${error.error?.message || 'Unknown error'}`);
+  }
+
+  const data = await response.json();
+  return data.candidates[0].content.parts[0].text;
 }

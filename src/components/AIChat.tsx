@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { AIChatHeader } from './AIChatHeader';
@@ -20,7 +19,8 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
   // Check for user API keys
   const userOpenaiKey = localStorage.getItem('user_openai_api_key');
   const userAnthropicKey = localStorage.getItem('user_anthropic_api_key');
-  const hasUserApiKeys = !!(userOpenaiKey || userAnthropicKey);
+  const userGeminiKey = localStorage.getItem('user_gemini_api_key');
+  const hasUserApiKeys = !!(userOpenaiKey || userAnthropicKey || userGeminiKey);
 
   // Event selection hook
   const {
