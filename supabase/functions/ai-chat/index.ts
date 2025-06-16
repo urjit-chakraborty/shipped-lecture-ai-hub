@@ -8,7 +8,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const DAILY_MESSAGE_LIMIT = 10; // Messages per day for users without API keys
+const DAILY_MESSAGE_LIMIT = 5; // Messages per day for users without API keys
 const MAX_TRANSCRIPT_LENGTH = 12000; // Maximum characters to send to AI
 
 serve(async (req) => {
@@ -35,9 +35,19 @@ serve(async (req) => {
     
     // If no user API keys, check rate limiting
     if (!hasUserApiKeys) {
-      const clientIP = req.headers.get('x-forwarded-for') || 
-                      req.headers.get('x-real-ip') || 
-                      '127.0.0.1';
+      // Get client IP and handle multiple IPs in forwarded header
+      const forwardedFor = req.headers.get('x-forwarded-for');
+      const realIp = req.headers.get('x-real-ip');
+      
+      let clientIP = '127.0.0.1';
+      if (forwardedFor) {
+        // Take the first IP from the comma-separated list
+        clientIP = forwardedFor.split(',')[0].trim();
+      } else if (realIp) {
+        clientIP = realIp.trim();
+      }
+
+      console.log('Client IP determined as:', clientIP);
 
       // Check current usage for this IP
       const { data: usageData, error: usageError } = await supabase

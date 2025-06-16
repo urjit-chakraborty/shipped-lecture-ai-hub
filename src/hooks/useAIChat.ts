@@ -10,7 +10,7 @@ interface Message {
   timestamp: Date;
 }
 
-const DAILY_MESSAGE_LIMIT = 10;
+const DAILY_MESSAGE_LIMIT = 5;
 
 export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) => {
   const [messages, setMessages] = useState<Message[]>([]);

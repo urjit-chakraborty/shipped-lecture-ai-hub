@@ -14,7 +14,7 @@ interface AIChatProps {
   preselectedEventIds?: string[];
 }
 
-const DAILY_MESSAGE_LIMIT = 10;
+const DAILY_MESSAGE_LIMIT = 5;
 
 export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
   // Check for user API keys
