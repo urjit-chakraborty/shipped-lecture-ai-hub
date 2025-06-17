@@ -6,12 +6,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { APIKeyManager } from '@/components/APIKeyManager';
 import { Separator } from '@/components/ui/separator';
-import { User, Settings as SettingsIcon, Key, LogOut, ArrowLeft } from 'lucide-react';
+import { User, Settings as SettingsIcon, Key, LogOut, ArrowLeft, Activity } from 'lucide-react';
 import { toast } from 'sonner';
+import { useUsageTracking } from '@/hooks/useUsageTracking';
 
 const Settings = () => {
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
+
+  // Check for user API keys
+  const userOpenaiKey = localStorage.getItem('user_openai_api_key');
+  const userAnthropicKey = localStorage.getItem('user_anthropic_api_key');
+  const userGeminiKey = localStorage.getItem('user_gemini_api_key');
+  const hasUserApiKeys = !!(userOpenaiKey || userAnthropicKey || userGeminiKey);
+
+  // Get usage tracking data
+  const { usageCount } = useUsageTracking(hasUserApiKeys);
+  const DAILY_CREDIT_LIMIT = 5;
+  const remainingCredits = DAILY_CREDIT_LIMIT - usageCount;
 
   // Show loading state while auth is being determined
   if (loading) {
@@ -117,6 +129,62 @@ const Settings = () => {
               </CardContent>
             </Card>
 
+            {/* Usage Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Activity className="w-5 h-5" />
+                  <span>Usage & Credits</span>
+                </CardTitle>
+                <CardDescription>
+                  Your AI assistant usage and credit information
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {!hasUserApiKeys && (
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-blue-900">Daily Credits Usage</h4>
+                        <div className="text-right">
+                          <span className="text-2xl font-bold text-blue-900">{usageCount}</span>
+                          <span className="text-blue-700">/{DAILY_CREDIT_LIMIT}</span>
+                        </div>
+                      </div>
+                      <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${(usageCount / DAILY_CREDIT_LIMIT) * 100}%` }}
+                        ></div>
+                      </div>
+                      <div className="flex justify-between text-sm text-blue-800">
+                        <span>Credits used today</span>
+                        <span>{remainingCredits} remaining</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {hasUserApiKeys && (
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <h4 className="font-medium text-green-900 mb-2">Unlimited Usage Active</h4>
+                      <p className="text-sm text-green-800">
+                        You're using your own API keys, so you have unlimited AI assistant usage.
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="p-4 bg-slate-50 rounded-lg">
+                    <h4 className="font-medium text-slate-700 mb-2">About Credits</h4>
+                    <ul className="text-sm text-slate-600 space-y-1">
+                      <li>• You receive 5 free AI assistant credits daily</li>
+                      <li>• Credits reset every day at midnight UTC</li>
+                      <li>• Add your own API keys below for unlimited usage</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* API Keys Management */}
             <Card>
               <CardHeader>
@@ -142,27 +210,6 @@ const Settings = () => {
                   
                   <div className="flex justify-center">
                     <APIKeyManager />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Usage Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Usage & Credits</CardTitle>
-                <CardDescription>
-                  Your AI assistant usage and credit information
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="p-4 bg-slate-50 rounded-lg">
-                    <h4 className="font-medium text-slate-700 mb-2">Daily Credits</h4>
-                    <p className="text-sm text-slate-600">
-                      You receive 5 free AI assistant credits daily. Credits reset every day at midnight UTC.
-                      Add your own API keys above for unlimited usage.
-                    </p>
                   </div>
                 </div>
               </CardContent>

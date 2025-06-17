@@ -4,7 +4,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, AlertTriangle, X } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { AlertCircle, AlertTriangle, X, Activity } from 'lucide-react';
 
 interface AIChatHeaderProps {
   hasUserApiKeys: boolean;
@@ -27,6 +28,9 @@ export const AIChatHeader = ({
   addEvent,
   removeEvent,
 }: AIChatHeaderProps) => {
+  const usedCredits = dailyMessageLimit - remainingMessages;
+  const usagePercentage = (usedCredits / dailyMessageLimit) * 100;
+
   return (
     <>
       {/* Chat persistence warning */}
@@ -37,14 +41,46 @@ export const AIChatHeader = ({
         </AlertDescription>
       </Alert>
       
+      {/* Usage tracking for users without API keys */}
       {!hasUserApiKeys && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {isAtLimit 
-              ? `Daily limit of ${dailyMessageLimit} messages reached. Add your API keys using the "API Keys" button in the header for unlimited access.`
-              : `Free usage: ${remainingMessages}/${dailyMessageLimit} messages remaining today. Add your API keys for unlimited access.`
-            }
+        <div className="space-y-3">
+          <Alert className={isAtLimit ? "border-red-200 bg-red-50" : "border-blue-200 bg-blue-50"}>
+            <Activity className={`h-4 w-4 ${isAtLimit ? "text-red-600" : "text-blue-600"}`} />
+            <AlertDescription className={isAtLimit ? "text-red-800" : "text-blue-800"}>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">
+                    Daily Credits: {usedCredits}/{dailyMessageLimit}
+                  </span>
+                  <span className="text-sm">
+                    {isAtLimit ? 'Limit reached' : `${remainingMessages} remaining`}
+                  </span>
+                </div>
+                <Progress 
+                  value={usagePercentage} 
+                  className={`w-full h-2 ${isAtLimit ? '[&>div]:bg-red-500' : '[&>div]:bg-blue-500'}`}
+                />
+                {isAtLimit ? (
+                  <p className="text-sm">
+                    Add your API keys using the "API Keys" button in the header for unlimited access.
+                  </p>
+                ) : (
+                  <p className="text-sm">
+                    Add your API keys for unlimited access without daily limits.
+                  </p>
+                )}
+              </div>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+
+      {/* Unlimited usage indicator for users with API keys */}
+      {hasUserApiKeys && (
+        <Alert className="border-green-200 bg-green-50">
+          <Activity className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">
+            <strong>Unlimited Usage:</strong> You're using your own API keys for unlimited AI assistant access.
           </AlertDescription>
         </Alert>
       )}
