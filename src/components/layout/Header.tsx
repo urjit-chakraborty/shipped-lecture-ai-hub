@@ -2,27 +2,13 @@
 import { useState } from "react";
 import { Menu, X, MessageCircle, Calendar, Rocket, LogIn, LogOut, User, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerClose } from "@/components/ui/drawer";
-import { AIChat } from "@/components/AIChat";
 import { APIKeyManager } from "@/components/APIKeyManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { smoothScrollToSection } from "@/utils/smoothScroll";
 import { toast } from "sonner";
 
-interface HeaderProps {
-  isAIChatOpen: boolean;
-  setIsAIChatOpen: (open: boolean) => void;
-  aiChatPreselectedEvents: string[];
-  handleAIChatClick: (event?: any) => void;
-}
-
-export const Header = ({ 
-  isAIChatOpen, 
-  setIsAIChatOpen, 
-  aiChatPreselectedEvents, 
-  handleAIChatClick 
-}: HeaderProps) => {
+export const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
 
@@ -71,20 +57,12 @@ export const Header = ({
             
             {user && <APIKeyManager />}
             
-            <Dialog open={isAIChatOpen} onOpenChange={setIsAIChatOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50" onClick={() => handleAIChatClick()}>
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  AI Assistant
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl h-[80vh]">
-                <DialogHeader>
-                  <DialogTitle>AI Video Assistant</DialogTitle>
-                </DialogHeader>
-                <AIChat preselectedEventIds={aiChatPreselectedEvents} />
-              </DialogContent>
-            </Dialog>
+            <Button asChild variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50">
+              <a href="/chat">
+                <MessageCircle className="w-4 h-4 mr-2" />
+                AI Assistant
+              </a>
+            </Button>
 
             {user ? (
               <div className="flex items-center space-x-3">
@@ -161,27 +139,17 @@ export const Header = ({
                   )}
                   
                   <div className="pt-2">
-                    <Dialog open={isAIChatOpen} onOpenChange={setIsAIChatOpen}>
-                      <DialogTrigger asChild>
-                        <Button 
-                          variant="outline" 
-                          className="w-full border-blue-200 text-blue-600 hover:bg-blue-50" 
-                          onClick={() => {
-                            handleAIChatClick();
-                            setIsMobileMenuOpen(false);
-                          }}
-                        >
-                          <MessageCircle className="w-4 h-4 mr-2" />
-                          AI Assistant
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-4xl h-[80vh]">
-                        <DialogHeader>
-                          <DialogTitle>AI Video Assistant</DialogTitle>
-                        </DialogHeader>
-                        <AIChat preselectedEventIds={aiChatPreselectedEvents} />
-                      </DialogContent>
-                    </Dialog>
+                    <Button 
+                      asChild
+                      variant="outline" 
+                      className="w-full border-blue-200 text-blue-600 hover:bg-blue-50" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <a href="/chat">
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        AI Assistant
+                      </a>
+                    </Button>
                   </div>
 
                   {user ? (

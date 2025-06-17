@@ -10,14 +10,26 @@ import { User, Settings as SettingsIcon, Key, LogOut, ArrowLeft } from 'lucide-r
 import { toast } from 'sonner';
 
 const Settings = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
 
-  React.useEffect(() => {
-    if (!user) {
-      navigate('/auth');
-    }
-  }, [user, navigate]);
+  // Show loading state while auth is being determined
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to auth if not logged in (after loading is complete)
+  if (!user) {
+    navigate('/auth');
+    return null;
+  }
 
   const handleSignOut = async () => {
     try {
@@ -28,10 +40,6 @@ const Settings = () => {
       toast.error('Failed to sign out');
     }
   };
-
-  if (!user) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">

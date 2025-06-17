@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AIChatHeader } from './AIChatHeader';
@@ -15,11 +15,12 @@ import { LogIn } from 'lucide-react';
 
 interface AIChatProps {
   preselectedEventIds?: string[];
+  chatId?: string;
 }
 
 const DAILY_CREDIT_LIMIT = 5;
 
-export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
+export const AIChat = ({ preselectedEventIds = [], chatId }: AIChatProps) => {
   const { user } = useAuth();
   
   // Check for user API keys
@@ -51,7 +52,7 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
     scrollAreaRef,
     sendMessage,
     handleKeyPress,
-  } = useAIChat(selectedEventIds, hasUserApiKeys);
+  } = useAIChat(selectedEventIds, hasUserApiKeys, chatId);
 
   // Welcome message hook
   useWelcomeMessage(
@@ -70,7 +71,7 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
   const isAtLimit = usageCount >= DAILY_CREDIT_LIMIT;
 
   const handleSendMessage = () => {
-    sendMessage(usageCount, setUsageCount, refetchUsage);
+    sendMessage(usageCount, setUsageCount, refetchUsage, chatId);
   };
 
   const handleInputKeyPress = (e: React.KeyboardEvent) => {
@@ -113,7 +114,7 @@ export const AIChat = ({ preselectedEventIds = [] }: AIChatProps) => {
   }
 
   return (
-    <Card className="h-[600px] flex flex-col">
+    <Card className="h-full flex flex-col">
       <CardHeader className="pb-3 flex-shrink-0">
         <AIChatHeader
           hasUserApiKeys={hasUserApiKeys}

@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { PostHogProvider } from "@/components/PostHogProvider";
 import Index from "./pages/Index";
 import Calendar from "./pages/Calendar";
+import Chat from "./pages/Chat";
 import Login from "./pages/Login";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
@@ -27,6 +28,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/calendar" element={<Calendar />} />
+              <Route path="/chat" element={<Chat />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/login" element={<Login />} />
               <Route path="/admin" element={<Admin />} />

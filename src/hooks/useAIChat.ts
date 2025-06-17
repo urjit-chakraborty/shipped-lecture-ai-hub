@@ -13,7 +13,7 @@ interface Message {
 
 const DAILY_CREDIT_LIMIT = 5;
 
-export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) => {
+export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean, chatId?: string) => {
   const { user, session } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -24,7 +24,76 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
   const userAnthropicKey = localStorage.getItem('user_anthropic_api_key');
   const userGeminiKey = localStorage.getItem('user_gemini_api_key');
 
-  const sendMessage = async (usageCount: number, setUsageCount: (value: number | ((prev: number) => number)) => void, refetchUsage?: () => void) => {
+  // Load chat history when chatId changes
+  useEffect(() => {
+    if (!chatId || !user) {
+      setMessages([]);
+      return;
+    }
+
+    const storageKey = `chat_history_${user.id}`;
+    const savedChats = localStorage.getItem(storageKey);
+    
+    if (savedChats) {
+      try {
+        const parsedChats = JSON.parse(savedChats);
+        const currentChat = parsedChats.find((chat: any) => chat.id === chatId);
+        
+        if (currentChat && currentChat.messages) {
+          const chatMessages = currentChat.messages.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp)
+          }));
+          setMessages(chatMessages);
+        } else {
+          setMessages([]);
+        }
+      } catch (error) {
+        console.error('Failed to load chat messages:', error);
+        setMessages([]);
+      }
+    }
+  }, [chatId, user]);
+
+  // Save messages to chat history
+  const saveMessageToHistory = (message: Message) => {
+    if (!chatId || !user) return;
+
+    const storageKey = `chat_history_${user.id}`;
+    const savedChats = localStorage.getItem(storageKey);
+    
+    try {
+      const parsedChats = savedChats ? JSON.parse(savedChats) : [];
+      const chatIndex = parsedChats.findIndex((chat: any) => chat.id === chatId);
+      
+      if (chatIndex >= 0) {
+        // Update existing chat
+        parsedChats[chatIndex].messages.push(message);
+        parsedChats[chatIndex].updatedAt = new Date().toISOString();
+        
+        // Auto-generate title from first user message if title is empty
+        if (!parsedChats[chatIndex].title && message.role === 'user') {
+          parsedChats[chatIndex].title = message.content.slice(0, 50) + (message.content.length > 50 ? '...' : '');
+        }
+      } else {
+        // Create new chat
+        const newChat = {
+          id: chatId,
+          title: message.role === 'user' ? message.content.slice(0, 50) + (message.content.length > 50 ? '...' : '') : '',
+          messages: [message],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        parsedChats.unshift(newChat);
+      }
+      
+      localStorage.setItem(storageKey, JSON.stringify(parsedChats));
+    } catch (error) {
+      console.error('Failed to save message to history:', error);
+    }
+  };
+
+  const sendMessage = async (usageCount: number, setUsageCount: (value: number | ((prev: number) => number)) => void, refetchUsage?: () => void, currentChatId?: string) => {
     if (!input.trim() || isLoading) return;
 
     // Check if user is authenticated
@@ -64,6 +133,7 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
     };
 
     setMessages(prev => [...prev, userMessage]);
+    saveMessageToHistory(userMessage);
     setInput('');
     setIsLoading(true);
 
@@ -125,6 +195,7 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      saveMessageToHistory(assistantMessage);
 
       // Update usage count after successful message
       if (!hasUserApiKeys) {
@@ -197,6 +268,7 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean) =
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorResponseMessage]);
+      saveMessageToHistory(errorResponseMessage);
     } finally {
       setIsLoading(false);
     }
