@@ -97,7 +97,8 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean, c
     if (!input.trim() || isLoading) return;
 
     // Check if user is authenticated
-    if (!user || !session) {
+    if (!user || !session?.access_token) {
+      console.log('useAIChat - No authentication session available');
       toast.error('Please sign in to use the AI assistant.', {
         duration: 5000,
         action: {
@@ -111,6 +112,7 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean, c
     }
 
     console.log('useAIChat - Current usage count before sending:', usageCount);
+    console.log('useAIChat - Session token available:', !!session.access_token);
 
     if (!hasUserApiKeys && usageCount >= DAILY_CREDIT_LIMIT) {
       toast.error(`Daily credit limit of ${DAILY_CREDIT_LIMIT} reached! Add your own API keys to continue chatting without limits.`, {
@@ -139,11 +141,7 @@ export const useAIChat = (selectedEventIds: string[], hasUserApiKeys: boolean, c
 
     try {
       console.log('useAIChat - Sending message with event IDs:', selectedEventIds);
-      
-      // Ensure we have a valid session with access token
-      if (!session.access_token) {
-        throw new Error('No valid session token available');
-      }
+      console.log('useAIChat - Using session token:', session.access_token.substring(0, 20) + '...');
       
       const { data, error } = await supabase.functions.invoke('ai-chat', {
         body: {
