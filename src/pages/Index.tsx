@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
@@ -7,10 +6,10 @@ import { Hero } from "@/components/layout/Hero";
 import { EventsGrid } from "@/components/layout/EventsGrid";
 import { Footer } from "@/components/layout/Footer";
 import { useVideoTracking } from "@/hooks/useVideoTracking";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
-  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
-  const [aiChatPreselectedEvents, setAiChatPreselectedEvents] = useState<string[]>([]);
+  const navigate = useNavigate();
   const { trackAIChatOpen } = useVideoTracking();
 
   const {
@@ -62,25 +61,19 @@ const Index = () => {
 
   const handleAIChatClick = (event?: any) => {
     if (event) {
-      // Pre-select specific event
-      setAiChatPreselectedEvents([event.id]);
+      // Navigate to chat page with pre-selected event
       trackAIChatOpen(event.id, event.title);
+      navigate(`/chat?eventId=${event.id}`);
     } else {
-      // Open general AI chat
-      setAiChatPreselectedEvents([]);
+      // Navigate to general chat page
       trackAIChatOpen();
+      navigate('/chat');
     }
-    setIsAIChatOpen(true);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <Header 
-        isAIChatOpen={isAIChatOpen}
-        setIsAIChatOpen={setIsAIChatOpen}
-        aiChatPreselectedEvents={aiChatPreselectedEvents}
-        handleAIChatClick={handleAIChatClick}
-      />
+      <Header />
       
       <Hero />
       
